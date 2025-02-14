@@ -14,7 +14,7 @@ void Read_encoder_btn();
 void Read_keypad();
 void ResetInputValue();
 void Cursor_position();
-void TgglDspStngs ();
+void ToggleDisplaySettings ();
 void Manage_Display();
 void V_I_W_Display(float PrintVoltage, float PrintCurrent, String mensaje);
 void Temp_check();
@@ -131,13 +131,12 @@ byte amp_char[8] = {                          // A mayúscula mas chica
 //------------------------------------------ Varaible para temporizar la visualizaciòn ----------------------------------------
 
 const unsigned long DSP_SET_DRTN = 2000;      // Tiempo que se mantiene mostrando los valores seteados (ms)
-const unsigned long DSP_SET_RFRSH = 100;      // Tiempo de refresco cuando se está seteando o cargando un valor (ms)
 const unsigned long DSP_INFO_RFRSH = 400;     // Tiempo de refresco cuando solo está informando (ms)
 
 bool dspset = true;                           // Flag que indica que hubo cambios en el seteo de V o I
+bool dspsetchng = false;                      // Flag que indica que hubo cambio en algun set para poder mostrarlo
 unsigned long dspset_time = 0;                // Tiemp que paso mostrando el valor seteado
 unsigned long dsp_time = 0;                   // Tiemp que paso mostrando el valor sensado
-unsigned long dsp_drtn = DSP_INFO_RFRSH;      // Refresh Rate para actualizar el valor sensado o seteado
 
 //-------------------------------------------Variables para Control de Temperatura---------------------------------------------
 const int TMP_CHK_TIME = 800;                 // Perdiodo de control de temperatura (miliseg.)
@@ -230,7 +229,7 @@ void setup() {
   lcd.setCursor(1,0);
   lcd.print("Fuente Lineal");
   lcd.setCursor(0,1);
-  lcd.print("v1.51");                           // 1.00a Primera versión, Solo funciones de Modo V y settings con encoder
+lcd.print("v1.52");                           // 1.00a Primera versión, Solo funciones de Modo V y settings con encoder
                                                 // 1.01a Incorporación del Keypad, funciòn basica 
                                                 // 1.02a Función Limits_check
                                                 // 1.10a Incorporacion de entrada de teclado y revisiòn de todas las funciones.
@@ -267,6 +266,7 @@ void setup() {
                                                 // 1.50b Acorto texto de Serial.Print() ya que se almacenan en SRAM, con F() se graban en la FLASH. FUNCIONA, ahorro mucha memoria
                                                 // 1.50.1b Cambios en la controladora, cambian factores de corriente de diseño (EN PRUEBA) para SNS y OUT
                                                 // 1.51 Compilado usando VS Code, detecto que la condicion de Preset no permite ver el cursor con los cambios del encoder
+                                                // 1.52 Mejora en el refresh de valores seteados en display. Resta ver porque el boton de clear no resetea el cursor, ver si es porque no se llama a la fucnion de display
   delay(1000);
   lcd.clear();
 
@@ -331,15 +331,15 @@ void Read_encoder() {
     encval = 0;
   }
   setvalue = min(ENCODER_MAX, max(0, setvalue));
-  TgglDspStngs();
+  r = 0; y = CP;                                             // Muevo el Cursor en renglòn de V e I y en la posición de CP
 } 
 
 //--------------------------------------------- Leer boton de encoder y acciónar ----------------------------------------------
 void Read_encoder_btn(void) {
   if (digitalRead(ENC_BTN) == LOW) {
-    delay(200);                                               //simple key bounce delay
-    TgglDspStngs();
-    CP++;                                                     //Avanzo el cursor con el botón del encoder
+    delay(200);                                               // Simple key bounce delay
+    CP++;                                                     // Avanzo el cursor con el botón del encoder
+    ToggleDisplaySettings();
     }
 }
 
@@ -355,7 +355,7 @@ void Read_keypad (void) {
 
   if (customKey != NO_KEY){
 
-    TgglDspStngs();
+    ToggleDisplaySettings();                                // Indica que hubo un cambio en el seteo
     
     if(customKey == 'V'){                                   // Pasar a Modo CV
       Mode = "V";
@@ -365,7 +365,7 @@ void Read_keypad (void) {
       decimalPoint = (' ');                                 // clear decimal point text character reset
       }
             
-    if(customKey == 'I'){                                   //Pasar a Modo CI
+    if(customKey == 'I'){                                   // Pasar a Modo CI
       Mode = "I";
       r = 0; y = 10; CP = 10; CPprev = 10;  factor = 1000;  // Cambio de modo, reubicación de factores y pos. de cursor
       reading = setcurrent;
@@ -373,10 +373,11 @@ void Read_keypad (void) {
       decimalPoint = (' ');                                 // clear decimal point text character reset
       }
           
-    if(customKey == 'M'){                                   // Seleccion de memorias
-      mem_st = !mem_st;
-      if (cal_st){mem_st = false;}                          // Si esta en modo calibración, no entre a modo Preset en Memoria
-      if (mem_st){Req_info = "Preset";}                     // Avisa que espera el preset de memoria
+     if(customKey == 'M'){                                   // Seleccion de memorias
+       mem_st = !mem_st;
+       if (cal_st){mem_st = false;}                          // Si esta en modo calibración, no entre a modo Preset en Memoria
+       if (mem_st){Req_info = "Preset"; r = 1; y = index;}   // Avisa que espera el preset de memoria
+       if (!mem_st && !cal_st){Req_info = "      ";}         // Limpia el mensaje de espera
       }
 
     if(customKey >= '0' && customKey <= '9'){               //Para teclas del 0 al 9....
@@ -422,15 +423,15 @@ void Read_keypad (void) {
     }
 
     if(customKey == 'U'){
-      r = 0;
       setvalue = setvalue + factor;                        // Update setvalue Up
       setvalue = min(ENCODER_MAX, max(0, setvalue));
+      r = 0; y = CP;                                       // Muevo el Cursor en renglòn de V e I y en la posición de CP  
       }
                 
     if(customKey == 'D'){
-      r = 0;
       setvalue = setvalue - factor;
       setvalue = min(ENCODER_MAX, max(0, setvalue));        // Update setvalue Up
+      r = 0; y = CP;                                       // Muevo el Cursor en renglòn de V e I y en la posición de CP  
       }
       
     if(customKey == '<'){CP--;}                            // Cursor a la Izquierda
@@ -452,7 +453,6 @@ void ResetInputValue() {
 void Cursor_position(void) {
 
   if (CP != CPprev) {
-    r = 0;                                                    // Cursor en renglòn de V e I
     if (Mode == "V") {                                        // Si esta en Modo V:
       int unitPosition = 0;
       if (CP < unitPosition) {CP = unitPosition+4;}           // Vuelve a las centesimas
@@ -465,7 +465,6 @@ void Cursor_position(void) {
       if (CP == unitPosition +1) { factor = 1000; }           // factor para unidades de V
       if (CP == unitPosition +3) { factor = 100; }            // factor para decimas de V
       if (CP == unitPosition +4)  {factor = 10; }             // Factor para centesimas de V
-      
       }
     
     if (Mode == "I") {
@@ -481,44 +480,40 @@ void Cursor_position(void) {
       if (CP == unitPosition +3) { factor = 10; }            // factor para centesimas de I
       if (CP == unitPosition +4)  {factor = 1; }             // Factor para milésimas de I
     }
-    y = CP;                                                  // Paso el cursor a la nueva posición
+    r = 0; y = CP;                                           // Muevo el Cursor en renglòn de V e I y en la posición de CP
     CPprev = CP;
   }
 }
 
 //------------------------------------------------- Toggle Display Settings ---------------------------------------------------
-void TgglDspStngs (void) {                              
+void ToggleDisplaySettings (void) {                              
   dspset = true;                                                  // Flag de que hubo cambio de set o se presiono una tecla
+  dspsetchng = true;                                              // Flag de que hubo cambio de set
   dspset_time = millis();                                         // Se resetea el tiempo que mostrara el cambio
-  r = 0; y = CP;                                                  // Reposiciona el cursor en el valor cambiado
 }
 
 //---------------------------------------------------- Display Managment ------------------------------------------------------
 void Manage_Display(void) {
   unsigned long current_time = millis();
-  
-  // Manejo del temporizador para alternar entre modos (dspset y normal)
-  if (dspset && (current_time - dspset_time) >= DSP_SET_DRTN) {   // Si se vencio el tiempo volver a mostrar V/I
-    dspset = false;                                               // Se vencio el tiempo y se saca el flag
-    dspset_time = current_time;                                   // Toma nota del momento 
-    ResetInputValue();                                            // Reseteo valor ingresado
+
+  if (dspset && dspsetchng) {
+      V_I_W_Display(setvoltage, setcurrent, Mnsg);                // Muestra los valores seteados
+      dspsetchng = false;                                         // Se saca el flag de cambio de set
+      dspset_time = current_time;                                 // Toma nota del momento en que se mostro el set
+      lcd.blink();                                                // Muestra el cursor  
+  }
+  else if(!dspset) {
+    if ((current_time - dsp_time) >= DSP_INFO_RFRSH) {            // Si paso el tiempo de refresco de info
+      V_I_W_Display(voltage, current, Mnsg);                      // Muestra los valores sensados
+      dsp_time = current_time;                                    // Reset crono de tempo de Display
+    }
   }
 
-  // Actualizar display si se cumplio el tiempo de refresh
-  if ((current_time - dsp_time) >= dsp_drtn){
-    lcd.noBlink();                                                // Desactiva el cursor
-
-    if (dspset) {
-      V_I_W_Display(setvoltage, setcurrent, Mnsg);                // Muestro los valores seteados                              
-      dsp_drtn = DSP_SET_RFRSH;                                   // Subo Refresh Rate para ver los cambios de Set apenas se realizan
-      }
-      else {
-      V_I_W_Display(voltage, current, Mnsg);                      // Muestra valores sensados
-      dsp_drtn = DSP_INFO_RFRSH;                                  // Bajo Refresh Rate para el sensado
-    }
-
-    lcd.blink();                                                  // Vuelvo a mostrar el cursor
-    dsp_time = current_time;                                      // Reset crono de tempo de Display
+  // Manejo del temporizador para alternar mostrar valores seteados y sensados
+  if (dspset && (current_time - dspset_time) >= DSP_SET_DRTN) {   // Si se vencio el tiempo volver a mostrar V/I
+    dspset = false;                                               // Se vencio el tiempo y se saca el flag
+    ResetInputValue();                                            // Reseteo valor ingresado
+    lcd.noBlink();                                                // Desactiva el cursor, solo se muesrtra en seteo
   }
 }
 
@@ -544,12 +539,8 @@ void V_I_W_Display(float PrintVoltage, float PrintCurrent, String mensaje) {
     lcd.print(PrintPower, ((PrintPower >= 100.0) ? 1 : 2));       // Pone la potencia con uno o dos decimales
     lcd.print("w");
     } 
-    else if (mem_st && !cal_st){
-    lcd.print(Req_info);                                          // Indico que espero valor de Memoria
-    r = 1; y = index;                                             // Dejo el cursor donde estaba la carga de un valor
-    }
-    else if (cal_st){
-    lcd.print(Req_info); 
+    else if (mem_st || cal_st){
+    lcd.print(Req_info);                                          // Muestra el mensaje de requerimiento
     }
 
   lcd.setCursor(6,0);
@@ -567,11 +558,10 @@ void V_I_W_Display(float PrintVoltage, float PrintCurrent, String mensaje) {
   }
     else {
       lcd.print(mensaje);                                         // Muestro el mensaje
-      for (unsigned int i = 1; i<= (10 - mensaje.length()); i++){          //Relleno el espacio de mensaje que queda con espacios para borrar los caranteres de mensajes anteriores
+      for (unsigned int i = 1; i<= (10 - mensaje.length()); i++){ //Rellena el espacio de mensaje que queda con espacios para borrar los caranteres de mensajes anteriores
       lcd.print(" ");
       }
     }
-
   lcd.setCursor(y,r);
 }
 

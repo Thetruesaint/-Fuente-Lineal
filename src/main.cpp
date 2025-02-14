@@ -229,7 +229,7 @@ void setup() {
   lcd.setCursor(1,0);
   lcd.print("Fuente Lineal");
   lcd.setCursor(0,1);
-lcd.print("v1.52");                           // 1.00a Primera versión, Solo funciones de Modo V y settings con encoder
+  lcd.print("v1.52");                           // 1.00a Primera versión, Solo funciones de Modo V y settings con encoder
                                                 // 1.01a Incorporación del Keypad, funciòn basica 
                                                 // 1.02a Función Limits_check
                                                 // 1.10a Incorporacion de entrada de teclado y revisiòn de todas las funciones.
@@ -266,7 +266,7 @@ lcd.print("v1.52");                           // 1.00a Primera versión, Solo fu
                                                 // 1.50b Acorto texto de Serial.Print() ya que se almacenan en SRAM, con F() se graban en la FLASH. FUNCIONA, ahorro mucha memoria
                                                 // 1.50.1b Cambios en la controladora, cambian factores de corriente de diseño (EN PRUEBA) para SNS y OUT
                                                 // 1.51 Compilado usando VS Code, detecto que la condicion de Preset no permite ver el cursor con los cambios del encoder
-                                                // 1.52 Mejora en el refresh de valores seteados en display. Resta ver porque el boton de clear no resetea el cursor, ver si es porque no se llama a la fucnion de display
+                                                // 1.52 Mejora en el refresh de valores seteados en display.
   delay(1000);
   lcd.clear();
 
@@ -666,14 +666,16 @@ void Set_Voltage_Current() {
     if (cal_st){Out_Volt_Calib_Fact = 1.0; Out_Volt_Calib_Offs = 0.0;}                  // Si estoy en modo Calibración, factor = 1 y Offset = 0 para poder leer el Voltage sin calibrar
     Ctrl_Volt = setvoltage * Out_Volt_Fact * Out_Volt_Calib_Fact + Out_Volt_Calib_Offs; // Calcula valor de salida para el DacV con los factores y offset
     dacV.setVoltage(Ctrl_Volt, false);                                                  // Setea el voltage de salida por el factor y POR EL MOMENTO, no lo graba en la Eprom del DacV.
-    }
+    ToggleDisplaySettings();                                                            // Indica que hubo un cambio de seteo
+  }
 
   if (Mode == "I" && reading != setcurrent){
     setcurrent = reading;
     if (cal_st){Out_Curr_Calib_Fact = 1.0; Out_Curr_Calib_Offs = 0.0;}                  // Si estoy en modo Calibración, reseteo factor para poder ver el valor sin calibrar
     Ctrl_Curr = setcurrent * Out_Curr_Fact * Out_Curr_Calib_Fact + Out_Curr_Calib_Offs; // Calcula valor de salida para el DacI con los factores y offset
     dacI.setVoltage(Ctrl_Curr, false);                                                  // Setea corriente máxima de salida por el factor y POR EL MOMENTO, no lo graba en la Eprom del DacI.
-    }
+    ToggleDisplaySettings();                                                            // Indica que hubo un cambio de seteo
+  }
 
   if (Mode == "B") {
     digitalWrite(MSFT_CTRL, LOW);                                                       // Deshabilito MOSFET, porque voy a setear tanto V como I. Se debe habililitar luego
@@ -685,7 +687,7 @@ void Set_Voltage_Current() {
     Ctrl_Curr = setcurrent * Out_Curr_Fact * Out_Curr_Calib_Fact + Out_Curr_Calib_Offs; // Calcula valor de salida para el DacI con los factores y offset
     dacV.setVoltage(Ctrl_Volt, false);                                                  // Setea el voltage de salida por el factor y POR EL MOMENTO, no lo graba en la Eprom del DacV.
     dacI.setVoltage(Ctrl_Curr, false);                                                  // Setea corriente máxima de salida por el factor y POR EL MOMENTO, no lo graba en la Eprom del DacI.
-    }
+  }
 }
 
 //------------------------------------------------- Memory Selection ----------------------------------------------------------
@@ -774,7 +776,7 @@ void Calibration() {
 
   if (x <= 0) {                                                   // Validar que 'x' sea mayor que 0
     Serial.println(F("null: Cal canceled"));
-    Mnsg = "No valid  ";                                          // Notifico
+    Mnsg = "Cal cancel";                                          // Notifico
     firstPoint = true;
     cal_st = false;
     cal_call = true;

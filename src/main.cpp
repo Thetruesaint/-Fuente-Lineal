@@ -1,10 +1,15 @@
+#define WOKWI_SIMULATION
+
 #include <Arduino.h>
 #include <Wire.h>
 #include <LiquidCrystal_I2C.h>
+#ifndef WOKWI_SIMULATION
 #include <Adafruit_ADS1X15.h>
 #include <Adafruit_MCP4725.h>
+#endif
 #include <Keypad.h>                           //http://playground.arduino.cc/Code/Keypad
 #include <EEPROM.h>                           //include EEPROM library used for storing setup data
+
 
 // Declaración de funciones
 void setup();
@@ -27,9 +32,11 @@ void LoadCalibration(int address, float &variable);
 void SaveCalibration(int address, float value);
 void Save_Calibration();
 
+#ifndef WOKWI_SIMULATION
 Adafruit_MCP4725 dacV;                        // Objeto dac para el MP4725 de Control de Tension
 Adafruit_MCP4725 dacI;                        // Objeto dac para el MP4725 de Control de Corriente
 Adafruit_ADS1115 ads;                         // Objeto ads para el ADS115
+#endif
 LiquidCrystal_I2C lcd(0x27, 16, 2);           // Objeto lcd.Sddress to 0x27 for a 16 chars and 2 line display
 
 //----------------------------------------------------I/O Pins---------------------------------------------------------------
@@ -133,7 +140,7 @@ byte amp_char[8] = {                          // A mayúscula mas chica
 const unsigned long DSP_SET_DRTN = 2000;      // Tiempo que se mantiene mostrando los valores seteados (ms)
 const unsigned long DSP_INFO_RFRSH = 400;     // Tiempo de refresco cuando solo está informando (ms)
 
-bool dspset = true;                           // Flag que indica que hubo cambios en el seteo de V o I
+bool dspset = true;                           // Flag que indica que se debe mostrar seteo
 bool dspsetchng = false;                      // Flag que indica que hubo cambio en algun set para poder mostrarlo
 unsigned long dspset_time = 0;                // Tiemp que paso mostrando el valor seteado
 unsigned long dsp_time = 0;                   // Tiemp que paso mostrando el valor sensado
@@ -176,7 +183,7 @@ void setup() {
   lcd.begin(16,2);                              // initialize the lcd, default address 0x27
   lcd.backlight();
   lcd.createChar(0, amp_char);                  //Guardo el caracter en la pos. 0 del Lcd para llamarlo luego 
-   
+  #ifndef WOKWI_SIMULATION
   if (dacV.begin(0x61)){
       lcd.setCursor(0,0);
       lcd.print("dacV OK");
@@ -205,7 +212,7 @@ void setup() {
       lcd.print("ads NDT"); hlth = false;
       Serial.print("ads NDT");
       }
-
+    #endif
     temp = analogRead(TEMP_SNSR);                // Tomar temperatura
     temp = temp * 0.48828125;                   // Convertir a Celsius
 
@@ -264,9 +271,10 @@ void setup() {
                                                 // 1.50 Agrego variables de calibracion offset out, saco #define para constantes, SE CUELGA, demasiada memoria dinámica?
                                                 // 1.50a saco offset para seteo de corriente maxima de salida para reducir memoria dinamica, SE CUELGA pero lleva a mostrar DacV OK en el LCD
                                                 // 1.50b Acorto texto de Serial.Print() ya que se almacenan en SRAM, con F() se graban en la FLASH. FUNCIONA, ahorro mucha memoria
-                                                // 1.50.1b Cambios en la controladora, cambian factores de corriente de diseño (EN PRUEBA) para SNS y OUT
-                                                // 1.51 Compilado usando VS Code, detecto que la condicion de Preset no permite ver el cursor con los cambios del encoder
-                                                // 1.52 Mejora en el refresh de valores seteados en display.
+                                                // 1.50.1b Cambios en la controladora, cambian factores de corriente de diseño para SNS y OUT
+                                                // 1.51 Compilado usando VS Code, la condicion de Preset no permite ver el cursor con los cambios del encoder
+                                                // 1.52 Mejora en el refresh de valores seteados en display. Resta ver porque el boton de clear no resetea el cursor, ver si es porque no se llama a la fucnion de display
+                                                // 1.53 Agrego #define WOKWI_SIMULATION para que no compile las librerias de Adafruit en la simulación de Wokwi y no tire error                                    
   delay(1000);
   lcd.clear();
 
@@ -283,7 +291,7 @@ void setup() {
 //--------------------------------------------------- Bucle Principal ---------------------------------------------------------
 void loop() {
 
-  reading = setvalue / 1000;                                    //Si hubo interrupción por inc o dec de encoder, se registra en la variable reading.
+  reading = setvalue / 1000;                                    //Se registra en la variable reading.
   Read_keypad();                                                //Verifica si hubo entrada por Teclado
   Limits_check();                                               //Chequea valores máximos de V/I y los fija si se superan. Tiene que ser despues de las funciones de ingreso de valores
   Read_encoder_btn();                                           //Se fija si se presionó el Encoder
@@ -331,7 +339,7 @@ void Read_encoder() {
     encval = 0;
   }
   setvalue = min(ENCODER_MAX, max(0, setvalue));
-  r = 0; y = CP;                                             // Muevo el Cursor en renglòn de V e I y en la posición de CP
+  r = 0; y = CP;                                              // Muevo el Cursor en renglòn de V e I y en la posición de CP
 } 
 
 //--------------------------------------------- Leer boton de encoder y acciónar ----------------------------------------------
@@ -340,7 +348,7 @@ void Read_encoder_btn(void) {
     delay(200);                                               // Simple key bounce delay
     CP++;                                                     // Avanzo el cursor con el botón del encoder
     ToggleDisplaySettings();
-    }
+  }
 }
 
 //--------------------------------------------------- Read Keypad Input -------------------------------------------------------
@@ -356,10 +364,10 @@ void Read_keypad (void) {
   if (customKey != NO_KEY){
 
     ToggleDisplaySettings();                                // Indica que hubo un cambio en el seteo
-    
+
     if(customKey == 'V'){                                   // Pasar a Modo CV
       Mode = "V";
-      r = 0; y = 1; CP = 1; CPprev = 1;  factor = 1000;    // Cambio de modo, reubicación de factores y pos. de cursor
+      r = 0; y = 1; CP = 1; CPprev = 1;  factor = 1000;     // Cambio de modo, reubicación de factores y pos. de cursor
       reading = setvoltage;
       setvalue = setvoltage * 1000;
       decimalPoint = (' ');                                 // clear decimal point text character reset
@@ -370,37 +378,37 @@ void Read_keypad (void) {
       r = 0; y = 10; CP = 10; CPprev = 10;  factor = 1000;  // Cambio de modo, reubicación de factores y pos. de cursor
       reading = setcurrent;
       setvalue = setcurrent * 1000;
-      decimalPoint = (' ');                                 // clear decimal point text character reset
+      decimalPoint = (' ');                                 // Clear decimal point text character reset
       }
           
-     if(customKey == 'M'){                                   // Seleccion de memorias
-       mem_st = !mem_st;
-       if (cal_st){mem_st = false;}                          // Si esta en modo calibración, no entre a modo Preset en Memoria
-       if (mem_st){Req_info = "Preset"; r = 1; y = index;}   // Avisa que espera el preset de memoria
-       if (!mem_st && !cal_st){Req_info = "      ";}         // Limpia el mensaje de espera
+    if(customKey == 'M'){                                   // Seleccion de memorias
+      mem_st = !mem_st;
+      if (cal_st){mem_st = false;}                          // Si esta en modo calibración, no entre a modo Preset en Memoria
+      if (mem_st){Req_info = "Preset"; r = 1; y = index;}   // Avisa que espera el preset de memoria
+      if (!mem_st && !cal_st){Req_info = "      ";}         // Limpia el mensaje de espera
       }
 
-    if(customKey >= '0' && customKey <= '9'){               //Para teclas del 0 al 9....
-      if (cal_st){index_max = 6;}                          // Si esta en modo calibración, extiendo el index para valores mas prescisos 
+    if(customKey >= '0' && customKey <= '9'){               // Para teclas del 0 al 9....
+      if (cal_st){index_max = 6;}                           // Si esta en modo calibración, extiendo el index para valores mas prescisos 
         else {index_max = 4;}
-      index = min(index_max, max(0, index));               //El valor de index puede estar entre 0 y 5 o 7 si esta en modo Calibración
+      index = min(index_max, max(0, index));                // El valor de index puede estar entre 0 y 5 o 7 si esta en modo Calibración
       numbers[index++] = customKey;                         
-      numbers[index] = '\0';                                //Agrega caracter nulo para indicar fin de la cadena de caranteres.
-      Mnsg = numbers;                                       //Muestro carga
-      r = 1; y = index;                                     //Resposiciond del cursor
+      numbers[index] = '\0';                                // Agrega caracter nulo para indicar fin de la cadena de caranteres.
+      Mnsg = numbers;                                       // Muestro carga
+      r = 1; y = index;                                     // Resposicion del cursor
       }
 
-    if(customKey == '.'){                                   //check if decimal button key pressed
-      if (decimalPoint != ('*')){                           //test if decimal point entered twice - if so skip 
+    if(customKey == '.'){                                   // Check if decimal button key pressed
+      if (decimalPoint != ('*')){                           // Test if decimal point entered twice - if so skip 
         numbers[index++] = '.';
         numbers[index] = '\0';
         Mnsg = numbers;
-        r = 1; y = index;                                   //Resposicion del cursor
-        decimalPoint = ('*');                               //used to indicate decimal point has been input
+        r = 1; y = index;                                   // Resposicion del cursor
+        decimalPoint = ('*');                               // Used to indicate decimal point has been input
         }
       }
 
-    if(customKey == 'E') {                                  //Tecla "Enter" carga el valor en el Set que corresponda
+    if(customKey == 'E') {                                  // Tecla "Enter" carga el valor en el Set que corresponda
       x = atof(numbers);
       if (mem_st && !cal_st){
         Mem_selec();
@@ -413,9 +421,9 @@ void Read_keypad (void) {
         }
       index = 0;
       numbers[index] = '\0';
-      decimalPoint = (' ');                                 //clear decimal point test character reset
-      r =0; y = 8;                                          //Reseteo posición del cursor reseltando el modo seteado
-      digitalWrite(MSFT_CTRL, HIGH);                         // Habilito MOSFET si estaba deshabilitado  
+      decimalPoint = (' ');                                 // Clear decimal point test character reset
+      r = 0; y = 8;                                         // Reseteo posición del cursor reseltando el modo seteado
+      digitalWrite(MSFT_CTRL, HIGH);                        // Habilito MOSFET si estaba deshabilitado  
       }
 
     if(customKey == 'C'){                                   // Borra valores ingresados
@@ -430,8 +438,8 @@ void Read_keypad (void) {
                 
     if(customKey == 'D'){
       setvalue = setvalue - factor;
-      setvalue = min(ENCODER_MAX, max(0, setvalue));        // Update setvalue Up
-      r = 0; y = CP;                                       // Muevo el Cursor en renglòn de V e I y en la posición de CP  
+      setvalue = min(ENCODER_MAX, max(0, setvalue));       // Update setvalue Down
+      r = 0; y = CP;                                       // Muevo el Cursor en renglòn de V e I y en la posición de CP
       }
       
     if(customKey == '<'){CP--;}                            // Cursor a la Izquierda
@@ -465,7 +473,7 @@ void Cursor_position(void) {
       if (CP == unitPosition +1) { factor = 1000; }           // factor para unidades de V
       if (CP == unitPosition +3) { factor = 100; }            // factor para decimas de V
       if (CP == unitPosition +4)  {factor = 10; }             // Factor para centesimas de V
-      }
+    }
     
     if (Mode == "I") {
       int unitPosition = 10;
@@ -599,7 +607,7 @@ void Limits_check (void) {
   static float maxpwrdis;                               // Potencia máxima de disipación calculada para el TIP3055, 90W para temp. ambiente
   
   if (temp >= 100) {                                    // Controlar el encendido de los fans y el temporizador
-    digitalWrite(MSFT_CTRL, LOW);                        // Deshabilito MOSFET y este a los TIP3055
+    digitalWrite(MSFT_CTRL, LOW);                       // Deshabilito MOSFET y este a los TIP3055
     Mnsg = "OFF Max T ";
   }
 
@@ -611,7 +619,7 @@ void Limits_check (void) {
   actpwrdis = max(0,(38 - voltage) * current / 2);      // Con corriente de mas de 2A baja la tensión de 41 a 38. La corriente se divide por dos TIP3055 y no puede ser menor que 0
 
   if (actpwrdis >= maxpwrdis) {
-    digitalWrite(MSFT_CTRL, LOW);                        // Deshabilito MOSFET y este a los TIP3055
+    digitalWrite(MSFT_CTRL, LOW);                       // Deshabilito MOSFET y este a los TIP3055
     Mnsg = "OFF Max WD";
   }
 
@@ -621,10 +629,10 @@ void Limits_check (void) {
     Mnsg = "Max V";                                     // Notifico
   }
 
-  if (Mode =="I" && reading > CurrentCutOff){             // Si en Modo I y la lectura supera el máximo
-    reading = CurrentCutOff;                              // Mantengo el valor a mostrar en máximo
-    setvalue = CurrentCutOff * 1000;                      // Lo mismo para el setvalue
-    Mnsg = "Max I";                                       // Notifico
+  if (Mode =="I" && reading > CurrentCutOff) {          // Si en Modo I y la lectura supera el máximo
+    reading = CurrentCutOff;                            // Mantengo el valor a mostrar en máximo
+    setvalue = CurrentCutOff * 1000;                    // Lo mismo para el setvalue
+    Mnsg = "Max I";                                     // Notifico
   }
 }
 
@@ -640,19 +648,25 @@ void Read_Voltage_Current() {
                                                      //ads.setGain(GAIN_FOUR);       // 4x gain   +/- 1.024V  1 bit = 0.03125mV
                                                      //ads.setGain(GAIN_EIGHT);      // 8x gain   +/- 0.512V  1 bit = 0.015625mV
                                                      //ads.setGain(GAIN_SIXTEEN);    // 16x gain  +/- 0.256V  1 bit = 0.0078125mV
-  
+  #ifndef WOKWI_SIMULATION
   ads.setGain(GAIN_ONE);                             // 1x gain   +/- 4.096V  1 bit = 0.125mV
   adcv = ads.readADC_SingleEnded(VLTG_SNSR);
-  raw_voltage = ads.computeVolts(adcv) * Sns_Volt_Fact;                     // Por ampl. dif. para sensado remoto de (Max. 30V).
+  raw_voltage = ads.computeVolts(adcv) * Sns_Volt_Fact;                   // Por ampl. dif. para sensado remoto de (Max. 30V).
+  #endif
   if (cal_st){Sns_Volt_Calib_Fact = 1.0; Sns_Volt_Calib_Offs = 0.0;}        // Si estoy en modo Calibración, reseteo a 1 el factor para poder leer el valor sin calibrar
   voltage = raw_voltage * Sns_Volt_Calib_Fact + Sns_Volt_Calib_Offs;        // Calibracion fina de voltaje
-  //voltage = abs(voltage);                                                 // Convertir a positivo si es necesario
-
+  #ifdef WOKWI_SIMULATION
+  voltage = setvoltage * 1.001;                                             // Prueba de lectura de voltaje con error inducido
+  #endif
+  #ifndef WOKWI_SIMULATION
   adci = ads.readADC_SingleEnded(CRR_SNSR);
-  raw_current = ads.computeVolts(adci) * Sns_Curr_Fact;                     // Por ampl. dif. para sensado remoto de (Max. 5A).
+  raw_current = ads.computeVolts(adci) * Sns_Curr_Fact;                   // Por ampl. dif. para sensado remoto de (Max. 5A).
+  #endif
   if (cal_st){Sns_Curr_Calib_Fact = 1.0; Sns_Curr_Calib_Offs = 0.0;}        // Si estoy en modo Calibración, reseteo a 1 el factor para poder leer el valor sin calibrar
   current = raw_current  * Sns_Curr_Calib_Fact + Sns_Curr_Calib_Offs;       // Calibracion fina de corriente
-  //current = abs(current);                                                 // Convertir a positivo si es necesario
+  #ifdef WOKWI_SIMULATION
+  current = setcurrent * 0.999;                                             // Prueba de lectura de corriente en 5A
+  #endif
 }
 
 //------------------------------------------- Set output voltage and max current ----------------------------------------------
@@ -665,7 +679,9 @@ void Set_Voltage_Current() {
     setvoltage = reading;
     if (cal_st){Out_Volt_Calib_Fact = 1.0; Out_Volt_Calib_Offs = 0.0;}                  // Si estoy en modo Calibración, factor = 1 y Offset = 0 para poder leer el Voltage sin calibrar
     Ctrl_Volt = setvoltage * Out_Volt_Fact * Out_Volt_Calib_Fact + Out_Volt_Calib_Offs; // Calcula valor de salida para el DacV con los factores y offset
-    dacV.setVoltage(Ctrl_Volt, false);                                                  // Setea el voltage de salida por el factor y POR EL MOMENTO, no lo graba en la Eprom del DacV.
+    #ifndef WOKWI_SIMULATION
+    dacV.setVoltage(Ctrl_Volt, false);                                                // Setea el voltage de salida por el factor y POR EL MOMENTO, no lo graba en la Eprom del DacV.
+    #endif
     ToggleDisplaySettings();                                                            // Indica que hubo un cambio de seteo
   }
 
@@ -673,8 +689,10 @@ void Set_Voltage_Current() {
     setcurrent = reading;
     if (cal_st){Out_Curr_Calib_Fact = 1.0; Out_Curr_Calib_Offs = 0.0;}                  // Si estoy en modo Calibración, reseteo factor para poder ver el valor sin calibrar
     Ctrl_Curr = setcurrent * Out_Curr_Fact * Out_Curr_Calib_Fact + Out_Curr_Calib_Offs; // Calcula valor de salida para el DacI con los factores y offset
-    dacI.setVoltage(Ctrl_Curr, false);                                                  // Setea corriente máxima de salida por el factor y POR EL MOMENTO, no lo graba en la Eprom del DacI.
-    ToggleDisplaySettings();                                                            // Indica que hubo un cambio de seteo
+    #ifndef WOKWI_SIMULATION
+    dacI.setVoltage(Ctrl_Curr, false);                                                // Setea corriente máxima de salida por el factor y POR EL MOMENTO, no lo graba en la Eprom del DacI.
+    #endif
+    ToggleDisplaySettings();
   }
 
   if (Mode == "B") {
@@ -685,8 +703,10 @@ void Set_Voltage_Current() {
     }   
     Ctrl_Volt = setvoltage * Out_Volt_Fact * Out_Volt_Calib_Fact + Out_Volt_Calib_Offs; // Calcula valor de salida para el DacV con los factores y offset
     Ctrl_Curr = setcurrent * Out_Curr_Fact * Out_Curr_Calib_Fact + Out_Curr_Calib_Offs; // Calcula valor de salida para el DacI con los factores y offset
+    #ifndef WOKWI_SIMULATION
     dacV.setVoltage(Ctrl_Volt, false);                                                  // Setea el voltage de salida por el factor y POR EL MOMENTO, no lo graba en la Eprom del DacV.
     dacI.setVoltage(Ctrl_Curr, false);                                                  // Setea corriente máxima de salida por el factor y POR EL MOMENTO, no lo graba en la Eprom del DacI.
+    #endif
   }
 }
 
@@ -819,8 +839,9 @@ void Calibration() {
       Out_Volt_Calib_Fact = max(0.9, min(1.1, (yo2 - yo1) / (x2 - x1)));                  // Calcula factor de corrección de salida usando el valor de referencia ingresado (usando instrumento externo)
       Out_Volt_Calib_Offs = max(-0.1, min(0.1, x1 - Out_Volt_Calib_Fact * yo1));
       Ctrl_Volt = setvoltage * Out_Volt_Fact * Out_Volt_Calib_Fact + Out_Volt_Calib_Offs;
+      #ifndef WOKWI_SIMULATION
       dacV.setVoltage(Ctrl_Volt, false);                                                  // Setea el voltage de salida por el nuevo factor para poder medirlo
-   
+      #endif
       // Informo resultados de Calibnación:
       Serial.print(F("Sns_Volt_Calib_Fact: ")); Serial.println(Sns_Volt_Calib_Fact, 4);
       Serial.print(F("Sns_Volt_Calib_Offs: ")); Serial.println(Sns_Volt_Calib_Offs, 4);
@@ -830,6 +851,7 @@ void Calibration() {
       cal_st = false;
       firstPoint = true;                                                              // Reiniciar para futuras calibraciones
       Mnsg = "V Cal set";
+      Req_info = "      ";
       LoadCalibration(ADD_SNS_CURR_FAC_CAL, Sns_Curr_Calib_Fact);                     // Carga Factor de Calibración de la EEPROM para sensado de Corriente, porque se reseteo en modo calibracion
       LoadCalibration(ADD_OUT_CURR_FAC_CAL, Out_Curr_Calib_Fact);                     // Carga Factor de Calibración de la EEPROM para seteo de Corriente, porque se reseteo en modo calibracion
       LoadCalibration(ADD_SNS_CURR_OFF_CAL, Sns_Curr_Calib_Offs);                     // Carga Offset de Calibración de la EEPROM para seteo de Corriente, porque se reseteo en modo calibracion
@@ -864,8 +886,9 @@ void Calibration() {
       Out_Curr_Calib_Fact = max(0.9, min(1.1, (yo2 - yo1) / (x2 - x1)));               // Calcula factor de corrección de salida usando el valor de referencia ingresado (usando instrumento externo)
       Out_Curr_Calib_Offs = max(-0.1, min(0.1, x1 - Out_Curr_Calib_Fact * yo1));       // Calcula Offset
       Ctrl_Curr = setcurrent * Out_Curr_Fact * Out_Curr_Calib_Fact;
+      #ifndef WOKWI_SIMULATION
       dacI.setVoltage(Ctrl_Curr, false);                                               // Setea la corriente de salida por el nuevo factor para poder medirlo
-   
+      #endif
       // Informo resultados de Calibnación:
       Serial.print(F("Sns_Curr_Calib_Fact: ")); Serial.println(Sns_Curr_Calib_Fact, 4);
       Serial.print(F("Sns_Curr_Calib_Offs: ")); Serial.println(Sns_Curr_Calib_Offs, 4);
@@ -875,6 +898,7 @@ void Calibration() {
       cal_st = false;
       firstPoint = true;                                                               // Reiniciar para futuras calibraciones
       Mnsg = "I Cal set";
+      Req_info = "      ";
       LoadCalibration(ADD_SNS_VOLT_FAC_CAL, Sns_Volt_Calib_Fact);                      // Carga Factor de Calibración de la EEPROM para sensado de Voltaje, porque se reseteo en modo calibracion
       LoadCalibration(ADD_OUT_VOLT_FAC_CAL, Out_Volt_Calib_Fact);                      // Carga Factor de Calibración de la EEPROM para seteo de Voltaje, porque se reseteo en modo calibracion
       LoadCalibration(ADD_SNS_VOLT_OFF_CAL, Sns_Volt_Calib_Offs);                      // Carga Offset de Calibración de la EEPROM para seteo de Voltaje, porque se reseteo en modo calibracion

@@ -236,7 +236,7 @@ void setup() {
   lcd.setCursor(1,0);
   lcd.print("Fuente Lineal");
   lcd.setCursor(0,1);
-  lcd.print("v1.52");                           // 1.00a Primera versión, Solo funciones de Modo V y settings con encoder
+  lcd.print("v1.53");                           // 1.00a Primera versión, Solo funciones de Modo V y settings con encoder
                                                 // 1.01a Incorporación del Keypad, funciòn basica 
                                                 // 1.02a Función Limits_check
                                                 // 1.10a Incorporacion de entrada de teclado y revisiòn de todas las funciones.
@@ -274,7 +274,7 @@ void setup() {
                                                 // 1.50.1b Cambios en la controladora, cambian factores de corriente de diseño para SNS y OUT
                                                 // 1.51 Compilado usando VS Code, la condicion de Preset no permite ver el cursor con los cambios del encoder
                                                 // 1.52 Mejora en el refresh de valores seteados en display. Resta ver porque el boton de clear no resetea el cursor, ver si es porque no se llama a la fucnion de display
-                                                // 1.53 Agrego #define WOKWI_SIMULATION para que no compile las librerias de Adafruit en la simulación de Wokwi y no tire error                                    
+                                                // 1.53 Agrego #define WOKWI_SIMULATION para que no compile las librerias de Adafruit en la simulación de Wokwi y no tire error. Saco el fastincrement del encoder                                 
   delay(1000);
   lcd.clear();
 
@@ -322,19 +322,19 @@ void Read_encoder() {
   // Update setvalue if encoder has rotated a full indent, that is at least 4 steps
   if( encval > 3 ) {                                            // Four steps forward
     
-    if((micros() - _lastIncReadTime) < PAUSE_LENGTH && factor == 1) {
+    /*if((micros() - _lastIncReadTime) < PAUSE_LENGTH && factor == 1) {
       setvalue = setvalue + FAST_INCREMENT ;
     }
-    _lastIncReadTime = micros();
+    _lastIncReadTime = micros();*/
     setvalue = setvalue + factor;                              // Update setvalue Up
     encval = 0;
   }
   else if( encval < -3 ) {                                     // Four steps backward
     
-    if((micros() - _lastDecReadTime) < PAUSE_LENGTH) {
+    /*if((micros() - _lastDecReadTime) < PAUSE_LENGTH) {
       setvalue = setvalue - FAST_INCREMENT ;
     }
-    _lastDecReadTime = micros();
+    _lastDecReadTime = micros();*/
     setvalue = setvalue - factor;                             // Update setvalue Down
     encval = 0;
   }

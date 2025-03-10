@@ -50,7 +50,8 @@ extern float reading;               // Lecturas de Encoder o keypad
 extern int CP;                      // Posiciona el cursor en las unidades para Modo V que es el default
 extern int CPprev;                  // Posisión anterior del cursor para saltar el punto decimal
 extern volatile float factor;       // Factor de escala que cambia las unidades para Modo V que es el default
-extern String Mode;                 // Modo "V" es el default
+extern char Mode;                   // Modo "V" es el default
+extern char Modetocal;              // Modo seleccionado para calibrar, no puede cambiar.
 extern String Mnsg;                 // Para mostrar mensajes
 
 extern float voltage;               // Voltage real

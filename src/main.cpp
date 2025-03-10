@@ -1,7 +1,7 @@
 //#define WOKWI_SIMULATION
 
-#include "variables.h"
-#include "funciones.h"
+#include "Variables.h"
+#include "Funciones.h"
 
 //---------------- ------------- Set I/O, ADC, DAC, Healt check, Versioning and Calibration load ------------------------------
 void setup() {
@@ -50,43 +50,40 @@ void setup() {
       lcd.print("ads NDT"); hlth = false;
       Serial.print("ads NDT");
       }
-    #endif
-    temp = analogRead(TEMP_SNSR);                // Tomar temperatura
-    temp = temp * 0.48828125;                   // Convertir a Celsius
 
-    lcd.setCursor(11,1);                        // Mostrar Sensado de Temperatura
+    temp = analogRead(TEMP_SNSR);              // Tomar temperatura
+    temp = temp * 0.48828125;                  // Convertir a Celsius
+
+    lcd.setCursor(11,1);                       // Mostrar Sensado de Temperatura
     lcd.print(temp);
     lcd.print((char)0xDF);
     lcd.print("C");
 
-  if (hlth == true && temp < 100) {
-    digitalWrite(MSFT_CTRL, HIGH);               // Habilito MOSFET si se ve todo ok
+  if (hlth == true && temp <= 99) {
+    Output_Control(true);                      // Habilito MOSFET si se ve todo ok
     }
 
   delay(1000);
+  #endif
 
   //----------------------------------------Configuraciones iniciales de única vez----------------------------------------------
   //dacV.setVoltage(0,true);                     // reset DAC to zero for no output current set at Switch On, Cambio a "True" para que guarde este valor en la Emprom
   //dacI.setVoltage(0,true);                     // reset DAC to zero for no output current set at Switch On, Cambio a "True" para que guarde este valor en la Emprom
-
   //-------------------------------------------------Pantalla Inicio------------------------------------------------------------
+
   lcd.clear();
   lcd.setCursor(1,0);
   lcd.print("Fuente Lineal");
   lcd.setCursor(0,1);
-  lcd.print("v1.53");                                 
-  delay(1000);
-  lcd.clear();
   #ifndef WOKWI_SIMULATION
-  LoadCalibration(ADD_SNS_VOLT_FAC_CAL, Sns_Volt_Calib_Fact);    // Carga Factor de Calibración de la EEPROM para sensado de Voltaje
-  LoadCalibration(ADD_SNS_CURR_FAC_CAL, Sns_Curr_Calib_Fact);    // Carga Factor de Calibración de la EEPROM para sensado de Corriente
-  LoadCalibration(ADD_OUT_VOLT_FAC_CAL, Out_Volt_Calib_Fact);    // Carga Factor de Calibración de la EEPROM para seteo de Voltaje
-  LoadCalibration(ADD_OUT_CURR_FAC_CAL, Out_Curr_Calib_Fact);    // Carga Factor de Calibración de la EEPROM para seteo de Corriente
-  LoadCalibration(ADD_SNS_VOLT_OFF_CAL, Sns_Volt_Calib_Offs);    // Carga Offset de Calibración de la EEPROM para sensado de Voltaje
-  LoadCalibration(ADD_SNS_CURR_OFF_CAL, Sns_Curr_Calib_Offs);    // Carga Offset de Calibración de la EEPROM para sensado de Corriente
-  LoadCalibration(ADD_OUT_VOLT_OFF_CAL, Out_Volt_Calib_Offs);    // Carga Offset de Calibración de la EEPROM para seteo de Voltaje
-  LoadCalibration(ADD_OUT_CURR_OFF_CAL, Out_Curr_Calib_Offs);    // Carga Offset de Calibración de la EEPROM para seteo de Corriente
+  lcd.print("v1.53b");        // No probado en HW                                 
+  delay(1000);
+  #else
+  lcd.print("v1.53 - SIM");   // Test en Simulación
+  delay(500);
   #endif
+  lcd.clear();
+  Load_Calibration();
 }
 
 //--------------------------------------------------- Bucle Principal ---------------------------------------------------------

@@ -1,4 +1,4 @@
-#include "variables.h"
+#include "Variables.h"
 
 #ifndef WOKWI_SIMULATION
 Adafruit_MCP4725 dacV;                        // Objeto dac para el MP4725 de Control de Tension
@@ -21,7 +21,8 @@ float reading = 0;                            // Lecturas de Encoder o keypad
 int CP = 1;                                   // Posiciona el cursor en las unidades para Modo V que es el default
 int CPprev = 11;                              // Posisión anterior del cursor para saltar el punto decimal
 volatile float factor = 1000;                 // Factor de escala que cambia las unidades para Modo V que es el default
-String Mode = "V";                            // Modo "V" es el default
+char Mode = 'V';                              // Modo "V" es el default
+char Modetocal = 'U';                         // Modo seleccionado para calibrar, no puede cambiar. U de Undefined
 String Mnsg = "          ";                   // Para mostrar mensajes
 
 float voltage = 0;                            // Voltage real

@@ -8,7 +8,6 @@
 void setup();
 void loop();
 void Read_encoder();
-void Read_encoder_btn();
 void Read_keypad();
 void ResetInputValue();
 void Cursor_position();
@@ -18,11 +17,12 @@ void V_I_W_Display(float PrintVoltage, float PrintCurrent, String mensaje);
 void Temp_check();
 void Limits_check();
 void Read_Voltage_Current();
-void Set_Voltage_Current();
+void Set_Voltage_Current(bool setVI = false); 
 void Mem_selec();
 void Calibration();
 void LoadCalibration(int address, float &variable);
-void SaveCalibration(int address, float value);
+void Save_EEPROM(int address, float value);
 void Save_Calibration();
+void ChangeMode(String Modetoset = "V");
 
 #endif

@@ -95,7 +95,6 @@ void loop() {
   reading = setvalue / 1000;                                    //Se registra en la variable reading.
   Read_keypad();                                                //Verifica si hubo entrada por Teclado
   Limits_check();                                               //Chequea valores máximos de V/I y los fija si se superan. Tiene que ser despues de las funciones de ingreso de valores
-  Read_encoder_btn();                                           //Se fija si se presionó el Encoder
   Cursor_position();                                            //Recalcula los factores de acuerdo a la posición del cursor
   Read_Voltage_Current();                                       //Muestro V/I sensados
   Set_Voltage_Current();                                        //Seteo V/I de corresponder

@@ -18,7 +18,7 @@ void Temp_check();
 void Limits_check();
 void Read_Voltage_Current();
 void Set_Voltage_Current(bool setVI = false); 
-void Mem_selec();
+void Mem_selec(char key);
 void Calibration();
 void Save_EEPROM(int address, float value);
 void Load_EEPROM(int address, float &variable);

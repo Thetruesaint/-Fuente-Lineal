@@ -65,7 +65,6 @@ byte rowPins[ROWS] = {5, 6, 7, 8};            // connect to the row pin outs of 
 byte colPins[COLS] = {9, 10, 11, 12, 14};     // connect to the column pin outs of the keypad
 
 Keypad customKeypad = Keypad(makeKeymap(hexaKeys), rowPins, colPins, ROWS, COLS);
-char customKey;
 char decimalPoint;                            // used to test for more than one press of * key (decimal point)
 char numbers[8];                              // keypad number entry - Plenty to store a representation of a float
 byte index = 0;
@@ -94,8 +93,5 @@ unsigned long dsp_time = 0;                   // Tiemp que paso mostrando el val
 
 //-------------------------------------------Variables para Control de Temperatura---------------------------------------------
 
-int temp = 0;                                 // Registra temperatura
-unsigned long Last_tmpchk = 0;                // Tiempo desde el ùltimo chequeo de temperatura
-unsigned long fan_on_time = 0;                // Tiempo que lleva encendido el Fan
-bool fans_on = false;                         // Estado de los Coolers
+int temp = 1;                                 // Temp. del disipador, =1 porque cero puede coincidir con un error.
 bool new_temp = true;                         // flag si hay nuevo valor de temperatura

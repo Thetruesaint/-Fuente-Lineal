@@ -93,7 +93,6 @@ extern byte rowPins[ROWS];          // connect to the row pin outs of the keypad
 extern byte colPins[COLS];          // connect to the column pin outs of the keypad
 
 extern Keypad customKeypad;
-extern char customKey;
 extern char decimalPoint;           // used to test for more than one press of * key (decimal point)
 extern char numbers[8];             // keypad number entry - Plenty to store a representation of a float
 extern byte index;
@@ -119,10 +118,7 @@ extern unsigned long dsp_time;              // Tiemp que paso mostrando el valor
 const int TMP_CHK_TIME = 800;       // Perdiodo de control de temperatura (miliseg.)
 const int FAN_ON_DRTN = 30000;      // Tiempo en miliseg. para mantener los fans encendidos (30 segundos)
 
-extern int temp;                    // Registra temperatura
-extern unsigned long Last_tmpchk;   // Tiempo desde el ùltimo chequeo de temperatura
-extern unsigned long fan_on_time;   // Tiempo que lleva encendido el Fan
-extern bool fans_on;                // Estado de los Coolers
+extern int temp;                    // Temperatura
 extern bool new_temp;               // flag si hay nuevo valor de temperatura
 
 //----------------------------------------------Direcciónamiento de la EEPRON--------------------------------------------------

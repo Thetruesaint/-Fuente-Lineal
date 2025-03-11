@@ -35,85 +35,86 @@ void Read_encoder() {
 
 //--------------------------------------------------- Read Keypad Input -------------------------------------------------------
 void Read_keypad (void) {
-  customKey = customKeypad.getKey();
-  byte index_max = 5;
+  char customKey = customKeypad.getKey();
+  byte index_max = 4;
   
-  if (customKey != NO_KEY){
+  if (customKey == NO_KEY) return;  // Solo procesar si se presionó una tecla
 
-    Show_VI_Settings();                                     // Indica que hubo un cambio en el seteo
+  Show_VI_Settings();  // Indica que hubo un cambio en el seteo
 
-    if(customKey == 'V' ) Change_Mode();                    // Cambiar a Modo CV
-    if(customKey == 'I' ) Change_Mode('I');                 // Cambiar a Modo CI
+  if (customKey == 'V') { Change_Mode(); return; }    // Cambiar a Modo CV
+  if (customKey == 'I') { Change_Mode('I'); return; } // Cambiar a Modo CI
         
-    if(customKey == 'M'){                                   // Seleccion de memorias
-      mem_st = !mem_st;
-      if (cal_st){mem_st = false;}                          // Si esta en modo calibración, no entre a modo Preset en Memoria
-      if (mem_st){Req_info = "Preset"; r = 1; y = index;}   // Avisa que espera el preset de memoria
-      if (!mem_st && !cal_st){Req_info = "      ";}         // Limpia el mensaje de espera
-      }
-
-    if(customKey >= '0' && customKey <= '9'){               // Para teclas del 0 al 9....
-      if (cal_st){index_max = 6;}                           // Si esta en modo calibración, extiendo el index para valores mas prescisos 
-        else {index_max = 4;}
-      index = min(index_max, max(0, index));                // El valor de index puede estar entre 0 y 5 o 7 si esta en modo Calibración
-      numbers[index++] = customKey;                         
-      numbers[index] = '\0';                                // Agrega caracter nulo para indicar fin de la cadena de caranteres.
-      Mnsg = numbers;                                       // Muestro carga
-      r = 1; y = index;                                     // Resposicion del cursor
-      }
-
-    if(customKey == '.'){                                   // Check if decimal button key pressed
-      if (decimalPoint != ('*')){                           // Test if decimal point entered twice - if so skip 
-        numbers[index++] = '.';
-        numbers[index] = '\0';
-        Mnsg = numbers;
-        r = 1; y = index;                                   // Resposicion del cursor
-        decimalPoint = ('*');                               // Used to indicate decimal point has been input
-        }
-      }
-
-    if(customKey == 'E') {                                  // Tecla "Enter" carga el valor en el Set que corresponda
-      x = atof(numbers);
-      Reset_Input_Value();
-      if (mem_st && !cal_st){
-        Mem_selec();
-        }
-      else if (cal_st) {Calibration();} // Calibration();} // Calibra factores
-      else{
-        reading = x;
-        setvalue = reading * 1000;
-        Mnsg = Mode + " set!";
-        }
-      r = 0; y = 8;                                         // Reseteo posición del cursor resaltando el modo seteado
-      Output_Control(true);                                 // Habilito MOSFET si estaba deshabilitado  
-      }
-
-    if(customKey == 'C' && index > 0){                      // Borra valores ingresados
-      index--;  
-      if (numbers[index] == '.') decimalPoint = ' ';        // Si borramos un punto, permitimos otro  
-      numbers[index] = '\0';  
-      Mnsg = numbers;
-      lcd.setCursor(index, r);
-      lcd.print(" ");
-      r = 1; y = index;                                    // Resposicion del cursor
-    }
-
-    if(customKey == 'U'){
-      setvalue = setvalue + factor;                        // Update setvalue Up
-      setvalue = min(ENCODER_MAX, max(0, setvalue));
-      r = 0; y = CP;                                       // Muevo el Cursor en renglòn de V e I y en la posición de CP  
-      }
-                
-    if(customKey == 'D'){
-      setvalue = setvalue - factor;
-      setvalue = min(ENCODER_MAX, max(0, setvalue));       // Update setvalue Down
-      r = 0; y = CP;                                       // Muevo el Cursor en renglòn de V e I y en la posición de CP
-      }
-      
-    if(customKey == '<'){CP--;}                            // Cursor a la Izquierda
-    
-    if(customKey == '>'){CP++;}                            // Cursor a la derecha
+  if (customKey == 'M') { // Selección de memorias
+    mem_st = !mem_st;
+    if (cal_st) mem_st = false; // Si está en modo calibración, no entra en modo Preset en Memoria
+    if (mem_st) { Req_info = "Preset"; r = 1; y = index; }
+    else if (!cal_st) { Req_info = "      "; }
+    return;
   }
+
+  if (customKey >= '0' && customKey <= '9') {  // Teclas numéricas
+    if (mem_st && !cal_st) { Mem_selec(customKey); return;}
+    else if (cal_st) index_max = 5;
+    index = min(index_max, max(0, index)); 
+    numbers[index++] = customKey;
+    numbers[index] = '\0';  
+    Mnsg = numbers;
+    r = 1; y = index;
+    return;
+  }
+
+  if (customKey == '.') {  // Punto decimal
+    if (decimalPoint != ('*')) {
+      numbers[index++] = '.';
+      numbers[index] = '\0';
+      Mnsg = numbers;
+      r = 1; y = index;
+      decimalPoint = ('*');
+    }
+    return;
+  }
+
+  if (customKey == 'E') { // Enter
+    x = atof(numbers);
+    Reset_Input_Value();
+    if (cal_st) {
+      Calibration();
+    } else {
+      reading = x;
+      setvalue = reading * 1000;
+      Mnsg = String(Mode) + F(" set!");  // Convierte Mode en string y concatena
+    }
+    r = 0; y = 8;
+    Output_Control(true);
+    return;
+  }
+
+  if (customKey == 'C' && index > 0) { // Borrar valores ingresados
+    index--;  
+    if (numbers[index] == '.') decimalPoint = ' ';  
+    numbers[index] = '\0';  
+    Mnsg = numbers;
+    lcd.setCursor(index, r);
+    lcd.print(" ");
+    r = 1; y = index;
+    return;
+  }
+
+  if (customKey == 'U') { // Aumentar setpoint
+    setvalue = min(ENCODER_MAX, max(0, setvalue + factor));
+    r = 0; y = CP;
+    return;
+  }
+
+  if (customKey == 'D') { // Disminuir setpoint
+    setvalue = min(ENCODER_MAX, max(0, setvalue - factor));
+    r = 0; y = CP;
+    return;
+  }
+  
+  if (customKey == '<') { CP--; return; } // Cursor a la izquierda
+  if (customKey == '>') { CP++; return; } // Cursor a la derecha
 }
 
 //------------------------------------------------------ Clear Input ----------------------------------------------------------
@@ -193,7 +194,7 @@ void Manage_Display(void) {
   // Manejo del temporizador para alternar mostrar valores seteados y sensados
   if (dspset && (current_time - dspset_time) >= DSP_SET_DRTN) {   // Si se vencio el tiempo volver a mostrar V/I
     dspset = false;                                               // Se vencio el tiempo y se saca el flag
-    if (!mem_st && !cal_st) Reset_Input_Value();                    // Reseteo valor ingresado
+    if (!cal_st) Reset_Input_Value();                             // Reseteo valor ingresado
     lcd.noBlink();                                                // Desactiva el cursor, solo se muesrtra en seteo
   }
 }
@@ -232,7 +233,7 @@ void V_I_W_Display(float PrintVoltage, float PrintCurrent, String mensaje) {
 
   lcd.setCursor(0,1);
 
-  if (mensaje == "          "){
+  if (mensaje == "          " && !cal_st){
     lcd.print("       ");           // Borro restos de cualquier otro mensaje
     if (temp < 10){lcd.print(" ");} // Pone un espacio si es menor un digito.
     lcd.print(temp);
@@ -249,6 +250,9 @@ void V_I_W_Display(float PrintVoltage, float PrintCurrent, String mensaje) {
 
 //--------------------------------------------------- Temperature Check -------------------------------------------------------
 void Temp_check(void) {
+  static unsigned long Last_tmpchk = 0;                // Tiempo desde el ùltimo chequeo de temperatura
+  static unsigned long fan_on_time = 0;                // Tiempo que lleva encendido el Fan
+  static bool fans_on = false;                         // Estado de los Coolers
   unsigned long hldtmp_time = millis();
   
   if ((hldtmp_time - Last_tmpchk) >= TMP_CHK_TIME) {                           // Si pasaron TMP_CHK_TIME milisegundos, tomará la temperatura
@@ -287,7 +291,7 @@ void Limits_check (void) {
   if (temp >= 99) {                                   // Controlar el encendido de los fans y el temporizador
     Output_Control(false);                            // Deshabilito MOSFET y este a los TIP3055
     Reset_Input_Value();
-    Mnsg = "OFF Max T ";
+    Mnsg = F("OFF Max T ");
   }
 
   if (new_temp){                                      // Si hay un nuevo valor de temperatura...
@@ -300,21 +304,21 @@ void Limits_check (void) {
   if (actpwrdis >= maxpwrdis) {
     Output_Control(false);                            // Deshabilito MOSFET y este a los TIP3055
     Reset_Input_Value();
-    Mnsg = "OFF Max WD";
+    Mnsg = F("OFF Max WD");
   }
 
   if (Mode =='V' && reading > VOLTS_CUTOFF) {         // Si en Modo V y la lectura supera el máximo
     reading = VOLTS_CUTOFF;                           // Mantengo el valor a mostrar en máximo
     setvalue = VOLTS_CUTOFF * 1000;                   // Lo mismo para el setvalue
     Reset_Input_Value();
-    Mnsg = "Max V";
+    Mnsg = F("Max V");
   }
 
   if (Mode =='I' && reading > CURRENT_CUTOFF) {       // Si en Modo I y la lectura supera el máximo
     reading = CURRENT_CUTOFF;                         // Mantengo el valor a mostrar en máximo
     setvalue = CURRENT_CUTOFF * 1000;                 // Lo mismo para el setvalue
     Reset_Input_Value();
-    Mnsg = "Max I";
+    Mnsg = F("Max I");
   }
 }
 
@@ -334,18 +338,25 @@ void Read_Voltage_Current() {
   ads.setGain(GAIN_ONE);                             // 1x gain   +/- 4.096V  1 bit = 0.125mV
   adcv = ads.readADC_SingleEnded(VLTG_SNSR);
   raw_voltage = ads.computeVolts(adcv) * Sns_Volt_Fact;                   // Por ampl. dif. para sensado remoto de (Max. 30V).
-
-  //if (cal_st){Sns_Volt_Calib_Fact = 1.0; Sns_Volt_Calib_Offs = 0.0;}        // Si estoy en modo Calibración, reseteo a 1 el factor para poder leer el valor sin calibrar
   voltage = raw_voltage * Sns_Volt_Calib_Fact + Sns_Volt_Calib_Offs;        // Calibracion fina de voltaje
 
 
   adci = ads.readADC_SingleEnded(CRR_SNSR);
   raw_current = ads.computeVolts(adci) * Sns_Curr_Fact;                   // Por ampl. dif. para sensado remoto de (Max. 5A).
-  //if (cal_st){Sns_Curr_Calib_Fact = 1.0; Sns_Curr_Calib_Offs = 0.0;}        // Si estoy en modo Calibración, reseteo a 1 el factor para poder leer el valor sin calibrar
   current = raw_current  * Sns_Curr_Calib_Fact + Sns_Curr_Calib_Offs;       // Calibracion fina de corriente
   #else
-  voltage = setvoltage * Out_Volt_Calib_Fact + Out_Volt_Calib_Offs;
-  current = setcurrent * Out_Curr_Calib_Fact + Out_Curr_Calib_Offs;
+
+  int potValue = analogRead(A3);
+  static float sim_Resistance = 1000;
+  sim_Resistance = map(potValue, 0, 1023, 10, 1000) / 10;  // Convertir el rango 0-1023 a 1000-0.1 ohms
+  current = (voltage / sim_Resistance) * Out_Curr_Calib_Fact + Out_Curr_Calib_Offs;                                // Asigna el valor de v simulado
+  if (current >= setcurrent){
+    current = setcurrent;
+    voltage = (sim_Resistance * current) * Out_Volt_Calib_Fact + Out_Volt_Calib_Offs;
+  } else {
+    voltage = setvoltage * Out_Volt_Calib_Fact + Out_Volt_Calib_Offs;
+  }
+
   #endif
 }
 
@@ -360,16 +371,16 @@ void Set_Voltage_Current(bool setVI) {
     setvoltage = reading;
     Ctrl_Volt = setvoltage * Out_Volt_Fact * Out_Volt_Calib_Fact + Out_Volt_Calib_Offs; // Calcula valor de salida para el DacV con los factores y offset
 
-    dacV.setVoltage(Ctrl_Volt, false);                                                // Setea el voltage de salida por el factor y POR EL MOMENTO, no lo graba en la Eprom del DacV.
-    Show_VI_Settings();                                                            // Indica que hubo un cambio de seteo
+    dacV.setVoltage(Ctrl_Volt, false);                                                  // Setea el voltage de salida por el factor y POR EL MOMENTO, no lo graba en la Eprom del DacV.
+    Show_VI_Settings(); // Ver si es necesario.
     return;
   }
 
   if (Mode == 'I' && reading != setcurrent && !setVI){
     setcurrent = reading;
     Ctrl_Curr = setcurrent * Out_Curr_Fact * Out_Curr_Calib_Fact + Out_Curr_Calib_Offs; // Calcula valor de salida para el DacI con los factores y offset
-    dacI.setVoltage(Ctrl_Curr, false);                                                // Setea corriente máxima de salida por el factor y POR EL MOMENTO, no lo graba en la Eprom del DacI.
-    Show_VI_Settings();
+    dacI.setVoltage(Ctrl_Curr, false);                                                  // Setea corriente máxima de salida por el factor y POR EL MOMENTO, no lo graba en la Eprom del DacI.
+    Show_VI_Settings();  // Ver si es necesario.
     return;
   }
 
@@ -389,39 +400,40 @@ void Set_Voltage_Current(bool setVI) {
     Show_VI_Settings();}
   if (setVI) {
     voltage = setvoltage * Out_Volt_Calib_Fact + Out_Volt_Calib_Offs;
-    current = setcurrent * Out_Curr_Calib_Fact + Out_Curr_Calib_Offs;
+    //current = setcurrent * Out_Curr_Calib_Fact + Out_Curr_Calib_Offs;
   }
   #endif
 }
 
 //------------------------------------------------- Memory Selection ----------------------------------------------------------
-void Mem_selec(void) {
+void Mem_selec(char key) {
   bool setVI = true;
-  if (x == 1.0) {
+
+  if (key == '1') {
     setvoltage = 3.3;
     setcurrent = 1.0;
   }
-  else if (x == 2.0) {
+  else if (key == '2') {
     setvoltage = 5;
     setcurrent = 2.0;
   }
-  else if (x == 3.0) {
+  else if (key == '3') {
     setvoltage = 9;
     setcurrent = 3.0;
   }
-  else if (x == 4.0) {
+  else if (key == '4') {
     setvoltage = 12;
     setcurrent = 3.0;
   }
-  else if (x == 5.0) {
+  else if (key == '5') {
     setvoltage = 16.8;
     setcurrent = 4.0;
   }
-  else if (x == 6.0) {
+  else if (key == '6') {
     setvoltage = 24;
     setcurrent = 5.0;
   }
-  else if (x == 99.0) {
+  else if (key == '0') {
     Calibration_Menu();
     setVI = false;
     return;
@@ -451,17 +463,17 @@ void Load_EEPROM(int address, float &variable) {
   EEPROM.get(address, variable);
 
   if (isnan(variable)) {  // Si el valor es NaN, significa que la EEPROM no estaba inicializada
-      Serial.print(F("EEPROM uninitialized at "));
-      Serial.print(address);
-      Serial.println(F(" Setting default"));
-
       variable = (address == ADD_SNS_VOLT_OFF_CAL || address == ADD_SNS_CURR_OFF_CAL || 
                   address == ADD_OUT_VOLT_OFF_CAL || address == ADD_OUT_CURR_OFF_CAL) ? 0.0 : 1.0;
 
       EEPROM.put(address, variable);  // Guardar el valor por defecto en la EEPROM
-  }
 
-  Serial.print(F("Loaded from "));
+      Serial.print(F("EEPROM nan at "));
+      Serial.print(address);
+      Serial.println(F(" fixed"));
+    }
+
+  Serial.print(F("Read from "));
   Serial.print(address);
   Serial.print(F(": "));
   Serial.println(variable, 4);
@@ -651,8 +663,8 @@ void Start_Calibration(char mode) {
   Change_Mode('B');
   Output_Control(true);
 
-  Mnsg = (Modetocal == 'V') ? F("   <Set V ") : F("   <Set I ");
-  Req_info = "P1 Cal";
+  Mnsg = F("     <Set ");
+  Req_info = (Modetocal == 'V') ? F("v1 Cal") : F("i1 Cal"); 
 
   // Inicializar factores de calibración SOLO para el parámetro que vamos a calibrar
   if (Modetocal == 'V') {
@@ -678,26 +690,28 @@ void Calibration(void) {
     Mnsg = "Cal cancel";
     Req_info = "      ";
     cal_st = false;
+    firstPoint = true;
     Load_Calibration(); // Restaurar valores desde EEPROM
     return;
   }
 
   if (firstPoint) {
-      x1 = x;
-      y1 = (Modetocal == 'V') ? voltage : current;
-      firstPoint = false;
-
-      // Configurar el segundo punto de calibración
-      setvoltage = (Modetocal == 'V') ? 28 : 20;
-      setcurrent = (Modetocal == 'I') ? 4 : 0.1;
-      Change_Mode('B');
-
-      Mnsg = (Modetocal == 'V') ? F("   <Set V ") : F("   <Set I ");
-      Req_info = "P2 Cal";
+    x1 = x;
+    y1 = (Modetocal == 'V') ? voltage : current;
+    firstPoint = false;
+    Serial.print(x1);
+    Serial.println(y1);
+    // Configurar el segundo punto de calibración
+    setvoltage = (Modetocal == 'V') ? 28 : 20;
+    setcurrent = (Modetocal == 'I') ? 4 : 0.1;
+    Change_Mode('B');
+    Mnsg = F("     <Set ");
+    Req_info = (Modetocal == 'V') ? F("v2 Cal") : F("i2 Cal"); 
   } else {
     x2 = x;
     y2 = (Modetocal == 'V') ? voltage : current;
-
+    Serial.print(x2);
+    Serial.println(y2);
     if (Modetocal == 'V') {
       sns_ok = Calc_Calib_Fact(x1, y1, x2, y2, Sns_Volt_Calib_Fact, Sns_Volt_Calib_Offs);
       out_ok = Calc_Calib_Fact(y1, x1, y2, x2, Out_Volt_Calib_Fact, Out_Volt_Calib_Offs);

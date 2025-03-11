@@ -76,7 +76,7 @@ void setup() {
   lcd.print("Fuente Lineal");
   lcd.setCursor(0,1);
   #ifndef WOKWI_SIMULATION
-  lcd.print("v1.53b");        // No probado en HW                                 
+  lcd.print("v1.53");        // Probado Ok en HW                                 
   delay(1000);
   #else
   lcd.print("v1.53 - SIM");   // Test en Simulación

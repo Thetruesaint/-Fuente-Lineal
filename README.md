@@ -1,36 +1,37 @@
-**v1.53**
+**v1.53** ## NEW CALIBRATION MENU ##
 
 **Mejoras:**
 - Reorganización de variables y funciones
 - Entornos de desarrollo Simulación y Real
-- Simulación básica dde lectura y seteo de V e I
+- Simulación básica de lectura y seteo de V e I
 - Borrado de entrada por dígito en ResetInputValue()
 - Mejora de Simulación diagram.jsom
 - Rediseño del cambio de modo V, I y B con funcion ChangeMode(Modetoset)
-- En modo Preset o Cal, no borra valores de entrada, dando tiempo a corregir o cargar un valor.
 - Reingenieria de Calibración por menu.
 - Simplificacion de lecturas y escrituras de EEPROM con rescritura de valores "nan"
 - Mode para a char en lugar de String.
 - En Calib. Se indica Fail cuando algun factor llega a limite permitido.
+- Simula carga variable.
+- Mejora de editado e ingreso de valores.
+- Presets del 1 al 9 sin enter, 0 para Menu de Calibración.
 
 **Fixes:**
+- En modo Preset o Cal, no borra valores de entrada, dando tiempo a corregir o cargar un valor.
 - En Calib. quedaba el cursor en I cuando se calibro V.
 - En Calib. se asegura que P1 y P2 se tomen para el modo seleccionado.
 
 **Bugs:**
-- Current Sns podría tener un margen del 1% para que permita llegar a los 5A
-- No hay warning si current o voltage es mayor al seteado.
-- Queda el mensaje de warning sale al salir de Preset
+- No hay protección de OVP u OCP.
 
 **Trabajando:**
-- Test de nuevo modo de Calibracón.
+- No mas para este release
 
 **A Trabajar:**
+- No mas para este release
 
 **En Cola:**
 
 **Posibles Mejoras SW:**
-- Revisar el editado de ingreso de valores.
 - Parar btn MEM a Shift, los preset sean shift + numero
 - Unificar la estructura de datos de calibracion?
 - Valores maximos seteables?

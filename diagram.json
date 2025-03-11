@@ -1,91 +1,104 @@
 {
-    "version": 1,
-    "author": "Guy Nardin",
-    "editor": "wokwi",
-    "parts": [
-      {
-        "type": "wokwi-arduino-nano",
-        "id": "nano",
-        "top": -43,
-        "left": -284.7,
-        "rotate": 180,
-        "attrs": {}
-      },
-      { "type": "wokwi-ky-040", "id": "encoder1", "top": -487.9, "left": -135.2, "attrs": {} },
-      {
-        "type": "wokwi-membrane-keypad",
-        "id": "keypad1",
-        "top": -405.2,
-        "left": -301.6,
-        "attrs": {}
-      },
-      {
-        "type": "wokwi-lcd1602",
-        "id": "lcd2",
-        "top": -492.8,
-        "left": -628,
-        "attrs": { "pins": "i2c" }
-      },
-      {
-        "type": "wokwi-pushbutton",
-        "id": "btn1",
-        "top": -358.6,
-        "left": 19.2,
-        "attrs": { "color": "blue" }
-      },
-      {
-        "type": "wokwi-pushbutton",
-        "id": "btn3",
-        "top": -303.8,
-        "left": -19,
-        "rotate": 180,
-        "attrs": { "color": "red" }
-      },
-      {
-        "type": "wokwi-pushbutton",
-        "id": "btn4",
-        "top": -301,
-        "left": 57.6,
-        "attrs": { "color": "green" }
-      },
-      {
-        "type": "wokwi-pushbutton",
-        "id": "btn5",
-        "top": -243.4,
-        "left": 19.2,
-        "attrs": { "color": "yellow" }
-      },
-      { "type": "wokwi-potentiometer", "id": "pot1", "top": -173, "left": 50.1, "attrs": {} }
-    ],
-    "connections": [
-      [ "encoder1:GND", "nano:GND.2", "black", [ "h201.6", "v480.8", "h-422.4" ] ],
-      [ "encoder1:VCC", "nano:5V", "red", [ "h172.8", "v461.2", "h-393.6" ] ],
-      [ "encoder1:SW", "nano:4", "cyan", [ "h182.4", "v518.5", "h-374.4" ] ],
-      [ "nano:3", "encoder1:CLK", "orange", [ "v28.8", "h412.8", "v-566.4" ] ],
-      [ "encoder1:DT", "nano:2", "white", [ "h192", "v537.7", "h-403.2" ] ],
-      [ "keypad1:R1", "nano:5", "green", [ "v10.43", "h297.65" ] ],
-      [ "keypad1:R2", "nano:6", "green", [ "v15.69", "h281.87" ] ],
-      [ "keypad1:R3", "nano:7", "green", [ "v20.42", "h262.9" ] ],
-      [ "keypad1:R4", "nano:8", "green", [ "v25.16", "h240.78" ] ],
-      [ "keypad1:C1", "nano:9", "green", [ "v29.89", "h221.81" ] ],
-      [ "keypad1:C2", "nano:10", "green", [ "v34.69", "h204.05" ] ],
-      [ "keypad1:C3", "nano:11", "green", [ "v39.68", "h182.4" ] ],
-      [ "keypad1:C4", "nano:12", "green", [ "v44.67", "h164.59" ] ],
-      [ "lcd2:GND", "nano:GND.2", "black", [ "h-48", "v465.6" ] ],
-      [ "lcd2:VCC", "nano:5V", "red", [ "h-38.4", "v460.9", "h787.7" ] ],
-      [ "lcd2:SDA", "nano:A4", "blue", [ "h-28.8", "v461", "h739.7" ] ],
-      [ "lcd2:SCL", "nano:A5", "violet", [ "h-19.2", "v461.1", "h739.7" ] ],
-      [ "btn1:2.r", "btn4:2.r", "green", [ "h48.2", "v57.6" ] ],
-      [ "btn4:2.r", "btn5:2.r", "green", [ "h9.8", "v57.6" ] ],
-      [ "btn3:1.l", "btn4:2.l", "green", [ "h13.34", "v22.79" ] ],
-      [ "nano:A0", "btn4:2.r", "green", [ "v-48", "h297.6", "v-182.6" ] ],
-      [ "btn1:1.l", "keypad1:R1", "green", [ "h-48", "v268.8", "h-172.8" ] ],
-      [ "btn3:2.r", "keypad1:R2", "green", [ "h-9.8", "v172.6", "h-153.2" ] ],
-      [ "btn4:1.l", "keypad1:R3", "green", [ "v38.4", "h-67.2", "v144", "h-172.5" ] ],
-      [ "btn5:1.l", "keypad1:R4", "green", [ "h-9.6", "v134.4", "h-172.6" ] ],
-      [ "pot1:SIG", "nano:A2", "cyan", [ "v133.3", "h-271.5" ] ],
-      [ "nano:5V", "pot1:VCC", "red", [ "v9.6", "h336", "v-114.1" ] ],
-      [ "nano:GND.2", "pot1:GND", "black", [ "v-9.6", "h319.1" ] ]
-    ],
-    "dependencies": {}
-  }
+  "version": 1,
+  "editor": "wokwi",
+  "parts": [
+    {
+      "type": "wokwi-arduino-nano",
+      "id": "nano1",
+      "top": 509.8,
+      "left": 368.5,
+      "rotate": 180,
+      "attrs": {}
+    },
+    { "type": "wokwi-ky-040", "id": "encoder1", "top": 64.9, "left": 518, "attrs": {} },
+    { "type": "wokwi-membrane-keypad", "id": "keypad1", "top": 147.6, "left": 351.6, "attrs": {} },
+    { "type": "wokwi-lcd1602", "id": "lcd1", "top": 60, "left": 25.2, "attrs": { "pins": "i2c" } },
+    {
+      "type": "wokwi-pushbutton",
+      "id": "btn1",
+      "top": 194.2,
+      "left": 672.4,
+      "attrs": { "color": "blue" }
+    },
+    {
+      "type": "wokwi-pushbutton",
+      "id": "btn2",
+      "top": 249,
+      "left": 634.2,
+      "rotate": 180,
+      "attrs": { "color": "red" }
+    },
+    {
+      "type": "wokwi-pushbutton",
+      "id": "btn3",
+      "top": 251.8,
+      "left": 710.8,
+      "attrs": { "color": "green" }
+    },
+    {
+      "type": "wokwi-pushbutton",
+      "id": "btn4",
+      "top": 309.4,
+      "left": 672.4,
+      "attrs": { "color": "yellow" }
+    },
+    { "type": "wokwi-potentiometer", "id": "pot1", "top": 340.3, "left": 67.4, "attrs": {} },
+    {
+      "type": "wokwi-slide-potentiometer",
+      "id": "pot2",
+      "top": 279.6,
+      "left": 138.8,
+      "rotate": 270,
+      "attrs": { "travelLength": "30" }
+    },
+    {
+      "type": "wokwi-text",
+      "id": "text1",
+      "top": 332,
+      "left": 259.6,
+      "rotate": 270,
+      "attrs": { "text": "Temperatura" }
+    },
+    {
+      "type": "wokwi-text",
+      "id": "text2",
+      "top": 312.8,
+      "left": 10,
+      "attrs": { "text": "Carga (hasta 1000 ohms)" }
+    }
+  ],
+  "connections": [
+    [ "encoder1:GND", "nano1:GND.2", "black", [ "h201.6", "v480.8", "h-422.4" ] ],
+    [ "encoder1:VCC", "nano1:5V", "red", [ "h172.8", "v461.2", "h-393.6" ] ],
+    [ "encoder1:SW", "nano1:4", "cyan", [ "h182.4", "v518.5", "h-374.4" ] ],
+    [ "nano1:3", "encoder1:CLK", "orange", [ "v28.8", "h412.8", "v-566.4" ] ],
+    [ "encoder1:DT", "nano1:2", "white", [ "h192", "v537.7", "h-403.2" ] ],
+    [ "keypad1:R1", "nano1:5", "green", [ "v10.43", "h297.65" ] ],
+    [ "keypad1:R2", "nano1:6", "green", [ "v15.69", "h281.87" ] ],
+    [ "keypad1:R3", "nano1:7", "green", [ "v20.42", "h262.9" ] ],
+    [ "keypad1:R4", "nano1:8", "green", [ "v25.16", "h240.78" ] ],
+    [ "keypad1:C1", "nano1:9", "green", [ "v29.89", "h221.81" ] ],
+    [ "keypad1:C2", "nano1:10", "green", [ "v34.69", "h204.05" ] ],
+    [ "keypad1:C3", "nano1:11", "green", [ "v39.68", "h182.4" ] ],
+    [ "keypad1:C4", "nano1:12", "green", [ "v44.67", "h164.59" ] ],
+    [ "lcd1:GND", "nano1:GND.2", "black", [ "h-48", "v465.6" ] ],
+    [ "lcd1:VCC", "nano1:5V", "red", [ "h-38.4", "v460.9", "h787.7" ] ],
+    [ "lcd1:SDA", "nano1:A4", "blue", [ "h-28.8", "v461", "h739.7" ] ],
+    [ "lcd1:SCL", "nano1:A5", "violet", [ "h-19.2", "v461.1", "h739.7" ] ],
+    [ "btn1:2.r", "btn3:2.r", "green", [ "h48.2", "v57.6" ] ],
+    [ "btn3:2.r", "btn4:2.r", "green", [ "h9.8", "v57.6" ] ],
+    [ "btn2:1.l", "btn3:2.l", "green", [ "h13.34", "v22.79" ] ],
+    [ "nano1:A0", "btn3:2.r", "green", [ "v-48", "h297.6", "v-182.6" ] ],
+    [ "btn1:1.l", "keypad1:R1", "green", [ "h-48", "v268.8", "h-172.8" ] ],
+    [ "btn2:2.r", "keypad1:R2", "green", [ "h-9.8", "v172.6", "h-153.2" ] ],
+    [ "btn3:1.l", "keypad1:R3", "green", [ "v38.4", "h-67.2", "v144", "h-172.5" ] ],
+    [ "btn4:1.l", "keypad1:R4", "green", [ "h-9.6", "v134.4", "h-172.6" ] ],
+    [ "nano1:5V", "pot1:VCC", "red", [ "v9.6", "h-297.6", "v-115.2" ] ],
+    [ "nano1:GND.2", "pot1:GND", "black", [ "v-28.8", "h-316.8" ] ],
+    [ "pot1:VCC", "pot2:VCC", "red", [ "v0" ] ],
+    [ "pot2:GND", "pot1:GND", "black", [ "h-57.6", "v196.4", "h-76.8" ] ],
+    [ "nano1:A2", "pot2:SIG", "cyan", [ "v-9.6", "h-220.8", "v-67.2" ] ],
+    [ "nano1:A3", "pot1:SIG", "gold", [ "v19.2", "h-355.2", "v-124.8" ] ]
+  ],
+  "dependencies": {}
+}

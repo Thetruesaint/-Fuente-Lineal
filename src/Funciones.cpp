@@ -1131,10 +1131,16 @@ void Calibration(void) {
   CalibrationPoint *currentPoint = firstPoint ? &point1 : &point2;
   bool sns_ok = false;
   bool out_ok = false;
+  bool currentLimitActive = voltage < setvoltage;
 
   if (x <= 0) {
     CancelCalibrationSession("Cal cancel");
     firstPoint = true;
+    return;
+  }
+
+  if (Modetocal == 'I' && !currentLimitActive) {
+    CopyUiText(Mnsg, MESSAGE_LEN, firstPoint ? "limit I1" : "limit I2");
     return;
   }
 
@@ -1174,6 +1180,8 @@ void Calibration(void) {
   mem_st = false;
   firstPoint = true;
   Modetocal = 'U';
+  Set_Voltage_Current(true);
+  Show_VI_Settings();
 }
 
 bool Calc_Calib_Fact(float x1, float y1, float x2, float y2, float &factorValue, float &offsetValue) {

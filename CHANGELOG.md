@@ -16,6 +16,8 @@
 **Fixes:**
 - Corrección de la aplicación de factores de calibración en la salida de `V` e `I`.
 - Corrección del algoritmo de calibración a dos puntos para sensado y salida.
+- Corrección del procedimiento de `Cal I` para exigir condición real de limitación de corriente antes de tomar `I1/I2`.
+- Reaplicación inmediata de factores recién calibrados para validar el resultado sin tocar el set.
 - Corrección del flujo de EEPROM para cargar, validar y sanear factores.
 - Corrección de refresco de pantalla, panel derecho y cursor en menús.
 - Corrección de interacción entre calibración y cambio de modo `V/I`.

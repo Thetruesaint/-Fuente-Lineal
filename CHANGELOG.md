@@ -1,3 +1,42 @@
+**v1.54 beta**
+
+**Mejoras:**
+- LCD `20x4` y rediseño completo de la UI principal.
+- Splash screen nuevo con `Fuente Lineal`, `By Guy & Codex` y versión `v1.54b`.
+- Cambio de tecla `MEM` a `S` con acciones contextuales en pantalla.
+- Nuevo menú `Config.` con submenús `Limits` y `Calibration`.
+- Reorganización de menús y navegación para facilitar nuevas funciones.
+- UI de calibración actualizada con ingreso `Real:` y ayudas contextuales.
+
+**Fixes:**
+- Corrección de la aplicación de factores de calibración en la salida de `V` e `I`.
+- Corrección del algoritmo de calibración a dos puntos para sensado y salida.
+- Corrección del flujo de EEPROM para cargar, validar y sanear factores.
+- Corrección de refresco de pantalla, panel derecho y cursor en menús.
+- Corrección de interacción entre calibración y cambio de modo `V/I`.
+
+**Bugs:**
+
+**Trabajando:**
+- Optimización de RAM y Flash.
+
+**A Trabajar:**
+
+**En Cola:**
+- No hay protección de OVP u OCP.
+
+**Posibles Mejoras SW:**
+
+- Unificar la estructura de datos de calibración?
+- Valores máximos seteables?
+- Opción de mostrar valores de calibración?
+
+**Posibles Mejoras HW:**
+- Imprimir botones con extrusor de 0.2mm
+- Ver de agregar un RELE para seleccionar bobina secundaria para V menor a 15V (tener en cuenta caídas de MOSFET por regulación)
+- Control de los reles de output
+- Cambiar/mejorar resistencia de sensado, usando las de DCload que sobraron.
+
 **v1.53** ## NEW CALIBRATION MENU ##
 
 **Mejoras:**
@@ -26,13 +65,13 @@
 **FW Anteriores:**
 
 // 1.00a Primera versión, Solo funciones de Modo V y settings con encoder
-// 1.01a Incorporación del Keypad, funciòn basica 
+// 1.01a Incorporación del Keypad, función basica
 // 1.02a Función Limits_check
-// 1.10a Incorporacion de entrada de teclado y revisiòn de todas las funciones.
+// 1.10a Incorporacion de entrada de teclado y revisión de todas las funciones.
 // 1.11a Cambios para notificaciones unificadas de mensajes, Si se presiona Enter in input setea 0.
 // 1.12a Rutinas para ADC y DAC, primera prueba en Protoboard, correcciones varias de limites y funcionamiento
 // 1.20b Primer Beta, No se ve el cursor, enter setea valor cero porque numbers se resetea a cero en la funcion de display settings
-// 1.30b Me doy cuenta que el ADC1115 tiene que sensar si o si una tensiòn por arriba de GND, agrego inversor con TCL062CP, primera versión funcional.
+// 1.30b Me doy cuenta que el ADC1115 tiene que sensar si o si una tensión por arriba de GND, agrego inversor con TCL062CP, primera versión funcional.
 // 1.31b Cambios en la gestión del cursor... display periodico en lugar de continuo. Emprolijo el código
 // 1.32b Cbio sns de A a amp dif. para sensar el R Shunt en cualquier parte (posible agregado de otro MOSFET con R de protección.) Calibracion
 // 1.33b Refresh de mensajes corregido, agreso sensor de temperatura y rutina

@@ -72,18 +72,19 @@ void setup() {
   //-------------------------------------------------Pantalla Inicio------------------------------------------------------------
 
   lcd.clear();
-  lcd.setCursor(1,0);
+  lcd.setCursor(3,0);
   lcd.print(F("Fuente Lineal"));
-  lcd.setCursor(0,1);
+  lcd.setCursor(3,1);
+  lcd.print(F("By Guy & Codex"));
+  lcd.setCursor(7,2);
   #ifndef WOKWI_SIMULATION
-  lcd.print(F("v1.54a"));       // Probado Ok en HW                                 
+  lcd.print(F("v1.54b"));       // Probado Ok en HW                                 
   delay(1000);
   #else
-  lcd.print(F("v1.54a - SIM"));  // Test en Simulación
+  lcd.print(F("v1.54b - SIM"));  // Test en Simulación
   delay(500);
   #endif
   lcd.clear();
-  lcd.print(F("Loading Cal..."));
   Load_Calibration();
 }
 

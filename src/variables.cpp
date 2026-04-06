@@ -5,7 +5,7 @@ Adafruit_MCP4725 dacV;                        // Objeto dac para el MP4725 de Co
 Adafruit_MCP4725 dacI;                        // Objeto dac para el MP4725 de Control de Corriente
 Adafruit_ADS1115 ads;                         // Objeto ads para el ADS115
 #endif
-LiquidCrystal_I2C lcd(0x27, 16, 2);           // Objeto lcd.Sddress to 0x27 for a 16 chars and 2 line display
+LiquidCrystal_I2C lcd(0x27, 20, 4);           // Objeto lcd.Sddress to 0x27 for a 20 chars and 4 line display
 
 //----------------------------------------------- Variables para Encoder ----------------------------------------------------
 
@@ -23,7 +23,7 @@ int CPprev = 11;                              // Posisión anterior del cursor p
 volatile float factor = 1000;                 // Factor de escala que cambia las unidades para Modo V que es el default
 char Mode = 'V';                              // Modo "V" es el default
 char Modetocal = 'U';                         // Modo seleccionado para calibrar, no puede cambiar. U de Undefined
-String Mnsg = "          ";                   // Para mostrar mensajes
+char Mnsg[UI_TEXT_LEN] = " ";                // Para mostrar mensajes
 
 float voltage = 0;                            // Voltage real
 float setvoltage = 0;                         // Voltaje a setear
@@ -50,14 +50,14 @@ float Out_Curr_Calib_Offs = 0.0;              // Offset de calibracion de corrie
 bool hlth = true;                             // Flag de Salud gral.
 bool mem_st = false;                          // Flag de seleccion de memorias o presets
 bool cal_st = false;                          // Flag para Calibración
-String Req_info = "      ";                   // Indica que información es requerida ingresar
+char Req_info[UI_TEXT_LEN] = " ";            // Indica que información es requerida ingresar
 
 //-------------------------------------------Variables para el Keypad---------------------------------------------------------
 
 char hexaKeys[ROWS][COLS] = {                 // Matriz de simbolos para los botones del teclado
   {'1','2','3','V','U'},
   {'4','5','6','I','<'},
-  {'7','8','9','M','>'},
+  {'7','8','9','S','>'},
   {'C','0','.','E','D'}
 };
 

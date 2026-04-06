@@ -18,7 +18,7 @@ void setup() {
 
   //-------------------------------------Inicializa perifericos-------------------------------------------
   Serial.begin(9600);                           // Para Debugs y Logs
-  lcd.begin(16,2);                              // initialize the lcd, default address 0x27
+  lcd.begin(20,4);                              // initialize the lcd, default address 0x27
   lcd.backlight();
   lcd.createChar(0, amp_char);                  //Guardo el caracter en la pos. 0 del Lcd para llamarlo luego 
   #ifndef WOKWI_SIMULATION
@@ -76,10 +76,10 @@ void setup() {
   lcd.print(F("Fuente Lineal"));
   lcd.setCursor(0,1);
   #ifndef WOKWI_SIMULATION
-  lcd.print(F("v1.53"));        // Probado Ok en HW                                 
+  lcd.print(F("v1.54a"));       // Probado Ok en HW                                 
   delay(1000);
   #else
-  lcd.print(F("v1.53 - SIM"));   // Test en Simulación
+  lcd.print(F("v1.54a - SIM"));  // Test en Simulación
   delay(500);
   #endif
   lcd.clear();

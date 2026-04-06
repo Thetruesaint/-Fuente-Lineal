@@ -2,17 +2,15 @@
 #include "Funciones.h"
 #include <EEPROM.h>
 #include <math.h>
-#include <stdio.h>
 #include <string.h>
 
 namespace {
 
-char g_displayCache[4][21] = {{0}};
+uint32_t g_displayHash[4] = {0};
 
 struct CalibrationData {
   int address;
   float *variable;
-  const char *name;
   bool isOffset;
 };
 
@@ -22,18 +20,24 @@ struct CalibrationPoint {
   float command;
 };
 
-void CopyUiText(char *dest, const char *src) {
+void CopyUiText(char *dest, size_t destLen, const char *src) {
   if (src == nullptr) src = "";
-  strncpy(dest, src, UI_TEXT_LEN - 1);
-  dest[UI_TEXT_LEN - 1] = '\0';
+  strncpy(dest, src, destLen - 1);
+  dest[destLen - 1] = '\0';
 }
 
-void ClearUiText(char *dest) {
-  CopyUiText(dest, "");
+void ClearUiText(char *dest, size_t destLen) {
+  CopyUiText(dest, destLen, "");
 }
 
 void SetModeMessage() {
-  snprintf(Mnsg, UI_TEXT_LEN, "%c set!", Mode);
+  Mnsg[0] = Mode;
+  Mnsg[1] = ' ';
+  Mnsg[2] = 's';
+  Mnsg[3] = 'e';
+  Mnsg[4] = 't';
+  Mnsg[5] = '!';
+  Mnsg[6] = '\0';
 }
 
 void PrintFixedLine(uint8_t row, const char *text) {
@@ -58,6 +62,68 @@ void ClearLineBuffer(char *line) {
   line[20] = '\0';
 }
 
+byte CopyTextLimited(char *dest, const char *src, byte maxLen) {
+  byte idx = 0;
+  while (idx < maxLen && src[idx] != '\0') {
+    dest[idx] = src[idx];
+    idx++;
+  }
+  return idx;
+}
+
+byte BuildTemperatureText(char *dest) {
+  char digits[5];
+  itoa(temp, digits, 10);
+  byte idx = CopyTextLimited(dest, digits, 4);
+  dest[idx++] = char(0xDF);
+  dest[idx++] = 'C';
+  dest[idx] = '\0';
+  return idx;
+}
+
+void BuildMenuLine(char *dest, bool selected, const char *item) {
+  memset(dest, ' ', 12);
+  dest[0] = selected ? '>' : ' ';
+  CopyTextLimited(dest + 1, item, 11);
+  dest[12] = '\0';
+}
+
+float ParseKeypadValue(const char *text) {
+  unsigned long integerPart = 0;
+  unsigned long fractionalPart = 0;
+  unsigned long fractionalScale = 1;
+  bool decimalSeen = false;
+
+  for (byte i = 0; text[i] != '\0'; i++) {
+    char ch = text[i];
+    if (ch == '.') {
+      if (decimalSeen) break;
+      decimalSeen = true;
+      continue;
+    }
+
+    if (ch < '0' || ch > '9') break;
+
+    if (!decimalSeen) {
+      integerPart = integerPart * 10UL + (ch - '0');
+    } else if (fractionalScale < 1000UL) {
+      fractionalPart = fractionalPart * 10UL + (ch - '0');
+      fractionalScale *= 10UL;
+    }
+  }
+
+  return integerPart + (fractionalPart / static_cast<float>(fractionalScale));
+}
+
+uint32_t HashDisplayLine(const char *text) {
+  uint32_t hash = 2166136261UL;
+  for (byte i = 0; i < 20; i++) {
+    hash ^= static_cast<uint8_t>(text[i]);
+    hash *= 16777619UL;
+  }
+  return hash;
+}
+
 void WriteTextAt(char *line, byte column, const char *text, byte maxLen = 20) {
   byte idx = 0;
   while ((column + idx) < 20 && idx < maxLen && text[idx] != '\0') {
@@ -67,29 +133,29 @@ void WriteTextAt(char *line, byte column, const char *text, byte maxLen = 20) {
 }
 
 void CommitLineIfChanged(uint8_t row, const char *text) {
-  if (strcmp(g_displayCache[row], text) != 0) {
+  uint32_t newHash = HashDisplayLine(text);
+  if (g_displayHash[row] != newHash) {
     lcd.setCursor(0, row);
     lcd.print(text);
-    strncpy(g_displayCache[row], text, 21);
-    g_displayCache[row][20] = '\0';
+    g_displayHash[row] = newHash;
   }
 }
 
 void ResetDisplayCache() {
   for (byte row = 0; row < 4; row++) {
-    g_displayCache[row][0] = '\0';
+    g_displayHash[row] = 0;
   }
 }
 
 void DrawMenuStatusPanel() {
-  char field[8];
+  char field[6];
   char panel[8];
   float power = max(voltage * current, 0.0f);
 
   memset(panel, ' ', 7);
   panel[7] = '\0';
-  snprintf(field, sizeof(field), "%2d%cC", temp, char(0xDF));
-  memcpy(panel + (7 - min((size_t)7, strlen(field))), field, min((size_t)7, strlen(field)));
+  byte fieldLen = BuildTemperatureText(field);
+  memcpy(panel + (7 - min((byte)7, fieldLen)), field, min((byte)7, fieldLen));
   lcd.setCursor(13, 0);
   lcd.print(panel);
 
@@ -135,16 +201,16 @@ uint16_t BuildDacCode(float desired, float baseFactor, float calibFactor, float 
 }
 #endif
 
-CalibrationData *GetCalibrationTable(byte &count) {
-  static CalibrationData data[] = {
-      {ADD_SNS_VOLT_FAC_CAL, &Sns_Volt_Calib_Fact, "Sns_Volt_Calib_Fact", false},
-      {ADD_SNS_CURR_FAC_CAL, &Sns_Curr_Calib_Fact, "Sns_Curr_Calib_Fact", false},
-      {ADD_OUT_VOLT_FAC_CAL, &Out_Volt_Calib_Fact, "Out_Volt_Calib_Fact", false},
-      {ADD_OUT_CURR_FAC_CAL, &Out_Curr_Calib_Fact, "Out_Curr_Calib_Fact", false},
-      {ADD_SNS_VOLT_OFF_CAL, &Sns_Volt_Calib_Offs, "Sns_Volt_Calib_Offs", true},
-      {ADD_SNS_CURR_OFF_CAL, &Sns_Curr_Calib_Offs, "Sns_Curr_Calib_Offs", true},
-      {ADD_OUT_VOLT_OFF_CAL, &Out_Volt_Calib_Offs, "Out_Volt_Calib_Offs", true},
-      {ADD_OUT_CURR_OFF_CAL, &Out_Curr_Calib_Offs, "Out_Curr_Calib_Offs", true},
+const CalibrationData *GetCalibrationTable(byte &count) {
+  static const CalibrationData data[] = {
+      {ADD_SNS_VOLT_FAC_CAL, &Sns_Volt_Calib_Fact, false},
+      {ADD_SNS_CURR_FAC_CAL, &Sns_Curr_Calib_Fact, false},
+      {ADD_OUT_VOLT_FAC_CAL, &Out_Volt_Calib_Fact, false},
+      {ADD_OUT_CURR_FAC_CAL, &Out_Curr_Calib_Fact, false},
+      {ADD_SNS_VOLT_OFF_CAL, &Sns_Volt_Calib_Offs, true},
+      {ADD_SNS_CURR_OFF_CAL, &Sns_Curr_Calib_Offs, true},
+      {ADD_OUT_VOLT_OFF_CAL, &Out_Volt_Calib_Offs, true},
+      {ADD_OUT_CURR_OFF_CAL, &Out_Curr_Calib_Offs, true},
   };
 
   count = sizeof(data) / sizeof(data[0]);
@@ -153,7 +219,7 @@ CalibrationData *GetCalibrationTable(byte &count) {
 
 bool IsOffsetAddress(int address) {
   byte count = 0;
-  CalibrationData *data = GetCalibrationTable(count);
+  const CalibrationData *data = GetCalibrationTable(count);
   for (byte i = 0; i < count; i++) {
     if (data[i].address == address) return data[i].isOffset;
   }
@@ -183,8 +249,8 @@ void ResetModeCalibration(char mode) {
 }
 
 void CancelCalibrationSession(const char *message) {
-  CopyUiText(Mnsg, message);
-  ClearUiText(Req_info);
+  CopyUiText(Mnsg, MESSAGE_LEN, message);
+  ClearUiText(Req_info, REQUEST_LEN);
   cal_st = false;
   mem_st = false;
   Modetocal = 'U';
@@ -215,7 +281,7 @@ int RunSimpleMenu(const char *title, const char *const items[], int itemCount) {
         char line[13];
         int itemIndex = top + row;
         if (itemIndex < itemCount) {
-          snprintf(line, sizeof(line), "%c%-11s", (itemIndex == selected) ? '>' : ' ', items[itemIndex]);
+          BuildMenuLine(line, itemIndex == selected, items[itemIndex]);
         } else {
           line[0] = '\0';
         }
@@ -305,12 +371,12 @@ void Read_keypad(void) {
     mem_st = !mem_st;
     if (cal_st) {
       if (mem_st) {
-        CopyUiText(Req_info, "CLR: Cancel");
+        CopyUiText(Req_info, REQUEST_LEN, "CLR: Cancel");
       } else {
-        ClearUiText(Req_info);
+        ClearUiText(Req_info, REQUEST_LEN);
       }
     } else {
-      ClearUiText(Req_info);
+      ClearUiText(Req_info, REQUEST_LEN);
     }
     return;
   }
@@ -343,7 +409,7 @@ void Read_keypad(void) {
   }
 
   if (customKey == 'E') {
-    x = atof(numbers);
+    x = ParseKeypadValue(numbers);
     Reset_Input_Value();
     if (cal_st) {
       Calibration();
@@ -365,7 +431,7 @@ void Read_keypad(void) {
 
   if (customKey == 'C' && index > 0) {
     mem_st = false;
-    if (cal_st) ClearUiText(Req_info);
+    if (cal_st) ClearUiText(Req_info, REQUEST_LEN);
     index--;
     if (numbers[index] == '.') decimalPoint = ' ';
     numbers[index] = '\0';
@@ -398,7 +464,7 @@ void Reset_Input_Value() {
   index = 0;
   numbers[index] = '\0';
   decimalPoint = ' ';
-  ClearUiText(Mnsg);
+  ClearUiText(Mnsg, MESSAGE_LEN);
 }
 
 void Cursor_position(void) {
@@ -489,7 +555,7 @@ void V_I_W_Display(float PrintVoltage, float PrintCurrent, const char *mensaje) 
   ClearLineBuffer(row3);
 
   WriteTextAt(row0, 0, mensaje, 14);
-  snprintf(tempBuf, sizeof(tempBuf), "%3d%cC", temp, char(0xDF));
+  BuildTemperatureText(tempBuf);
   WriteTextAt(row0, 15, tempBuf, 5);
 
   if (mem_st && !cal_st) {
@@ -569,7 +635,7 @@ void Limits_check(void) {
   if (temp >= 99) {
     Output_Control(false);
     Reset_Input_Value();
-    CopyUiText(Mnsg, "OFF Max T");
+    CopyUiText(Mnsg, MESSAGE_LEN, "OFF Max T");
   }
 
   if (new_temp) {
@@ -582,21 +648,21 @@ void Limits_check(void) {
   if (actpwrdis >= maxpwrdis) {
     Output_Control(false);
     Reset_Input_Value();
-    CopyUiText(Mnsg, "OFF Max WD");
+    CopyUiText(Mnsg, MESSAGE_LEN, "OFF Max WD");
   }
 
   if (Mode == 'V' && reading > VOLTS_CUTOFF) {
     reading = VOLTS_CUTOFF;
     setvalue = VOLTS_CUTOFF * 1000;
     Reset_Input_Value();
-    CopyUiText(Mnsg, "Max V");
+    CopyUiText(Mnsg, MESSAGE_LEN, "Max V");
   }
 
   if (Mode == 'I' && reading > CURRENT_CUTOFF) {
     reading = CURRENT_CUTOFF;
     setvalue = CURRENT_CUTOFF * 1000;
     Reset_Input_Value();
-    CopyUiText(Mnsg, "Max I");
+    CopyUiText(Mnsg, MESSAGE_LEN, "Max I");
   }
 }
 
@@ -700,7 +766,7 @@ void Mem_selec(char key) {
     return;
   } else {
     setVI = false;
-    CopyUiText(Mnsg, "Empty");
+    CopyUiText(Mnsg, MESSAGE_LEN, "Empty");
   }
 
   if (setVI) {
@@ -727,7 +793,7 @@ void Save_Calibration() {
   bool cng_flag = false;
   float eeprom_read_Cal = 0.0f;
   byte count = 0;
-  CalibrationData *data = GetCalibrationTable(count);
+  const CalibrationData *data = GetCalibrationTable(count);
 
   for (byte i = 0; i < count; i++) {
     Load_EEPROM(data[i].address, eeprom_read_Cal);
@@ -737,13 +803,13 @@ void Save_Calibration() {
     }
   }
 
-  CopyUiText(Mnsg, cng_flag ? "Cal saved!" : "Cal is Ok");
+  CopyUiText(Mnsg, MESSAGE_LEN, cng_flag ? "Cal saved!" : "Cal is Ok");
 }
 
 void Load_Calibration() {
   bool corrected = false;
   byte count = 0;
-  CalibrationData *data = GetCalibrationTable(count);
+  const CalibrationData *data = GetCalibrationTable(count);
 
   for (byte i = 0; i < count; i++) {
     Load_EEPROM(data[i].address, *data[i].variable);
@@ -756,16 +822,16 @@ void Load_Calibration() {
     }
   }
 
-  if (corrected) CopyUiText(Mnsg, "Cal defaulted");
+  if (corrected) CopyUiText(Mnsg, MESSAGE_LEN, "Cal defaulted");
 }
 
 void Change_Mode(char Modetoset) {
-  char savedMessage[UI_TEXT_LEN];
-  char savedRequest[UI_TEXT_LEN];
+  char savedMessage[MESSAGE_LEN];
+  char savedRequest[REQUEST_LEN];
 
   if (cal_st) {
-    CopyUiText(savedMessage, Mnsg);
-    CopyUiText(savedRequest, Req_info);
+    CopyUiText(savedMessage, sizeof(savedMessage), Mnsg);
+    CopyUiText(savedRequest, sizeof(savedRequest), Req_info);
   }
 
   if (Modetoset == 'I') {
@@ -801,8 +867,8 @@ void Change_Mode(char Modetoset) {
     index = 0;
     numbers[index] = '\0';
     decimalPoint = ' ';
-    CopyUiText(Mnsg, savedMessage);
-    CopyUiText(Req_info, savedRequest);
+    CopyUiText(Mnsg, MESSAGE_LEN, savedMessage);
+    CopyUiText(Req_info, REQUEST_LEN, savedRequest);
   } else {
     Reset_Input_Value();
   }
@@ -897,8 +963,8 @@ void Start_Calibration(char mode) {
   ResetModeCalibration(mode);
   ApplyCalibrationSetpoints(2.0f, 0.1f);
 
-  CopyUiText(Mnsg, (Modetocal == 'V') ? "Enter V1" : "Enter I1");
-  ClearUiText(Req_info);
+  CopyUiText(Mnsg, MESSAGE_LEN, (Modetocal == 'V') ? "Enter V1" : "Enter I1");
+  ClearUiText(Req_info, REQUEST_LEN);
 }
 
 void Calibration(void) {
@@ -923,12 +989,12 @@ void Calibration(void) {
     firstPoint = false;
     if (Modetocal == 'V') {
       ApplyCalibrationSetpoints(28.0f, 0.1f);
-      CopyUiText(Mnsg, "Enter V2");
+      CopyUiText(Mnsg, MESSAGE_LEN, "Enter V2");
     } else {
       ApplyCalibrationSetpoints(20.0f, 4.0f);
-      CopyUiText(Mnsg, "Enter I2");
+      CopyUiText(Mnsg, MESSAGE_LEN, "Enter I2");
     }
-    ClearUiText(Req_info);
+    ClearUiText(Req_info, REQUEST_LEN);
     return;
   }
 
@@ -941,12 +1007,12 @@ void Calibration(void) {
   }
 
   if (!sns_ok || !out_ok) {
-    CopyUiText(Mnsg, (Modetocal == 'V') ? "V Cal Fail" : "I Cal Fail");
+    CopyUiText(Mnsg, MESSAGE_LEN, (Modetocal == 'V') ? "V Cal Fail" : "I Cal Fail");
   } else {
-    CopyUiText(Mnsg, (Modetocal == 'V') ? "V Cal Done" : "I Cal Done");
+    CopyUiText(Mnsg, MESSAGE_LEN, (Modetocal == 'V') ? "V Cal Done" : "I Cal Done");
   }
 
-  ClearUiText(Req_info);
+  ClearUiText(Req_info, REQUEST_LEN);
   cal_st = false;
   mem_st = false;
   firstPoint = true;

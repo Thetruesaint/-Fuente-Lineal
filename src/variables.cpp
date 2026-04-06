@@ -9,9 +9,6 @@ LiquidCrystal_I2C lcd(0x27, 20, 4);           // Objeto lcd.Sddress to 0x27 for 
 
 //----------------------------------------------- Variables para Encoder ----------------------------------------------------
 
-unsigned long lastButtonPress = 0;            //Use this to store if the encoder button was pressed or not
-unsigned long _lastIncReadTime = micros(); 
-unsigned long _lastDecReadTime = micros(); 
 volatile float setvalue = 0;                  // Contador del encoder
 
 //----------------------------------------- Variables de operacion y Modos --------------------------------------------------
@@ -23,7 +20,7 @@ int CPprev = 11;                              // Posisión anterior del cursor p
 volatile float factor = 1000;                 // Factor de escala que cambia las unidades para Modo V que es el default
 char Mode = 'V';                              // Modo "V" es el default
 char Modetocal = 'U';                         // Modo seleccionado para calibrar, no puede cambiar. U de Undefined
-char Mnsg[UI_TEXT_LEN] = " ";                // Para mostrar mensajes
+char Mnsg[MESSAGE_LEN] = " ";                // Para mostrar mensajes
 
 float voltage = 0;                            // Voltage real
 float setvoltage = 0;                         // Voltaje a setear
@@ -50,7 +47,7 @@ float Out_Curr_Calib_Offs = 0.0;              // Offset de calibracion de corrie
 bool hlth = true;                             // Flag de Salud gral.
 bool mem_st = false;                          // Flag de seleccion de memorias o presets
 bool cal_st = false;                          // Flag para Calibración
-char Req_info[UI_TEXT_LEN] = " ";            // Indica que información es requerida ingresar
+char Req_info[REQUEST_LEN] = " ";            // Indica que información es requerida ingresar
 
 //-------------------------------------------Variables para el Keypad---------------------------------------------------------
 

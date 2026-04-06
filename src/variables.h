@@ -31,19 +31,16 @@ const byte FAN_CTRL = A3;                     // Endendido de Fan
 
 //----------------------------------------------- Variables para Encoder ----------------------------------------------------
 
-const unsigned long PAUSE_LENGTH = 25000;
-const unsigned long FAST_INCREMENT  = 10;
 const unsigned long ENCODER_MAX = 999000;              // sets maximum Rotary Encoder value allowed CAN BE CHANGED AS REQUIRED (was 50000)
 
-extern unsigned long lastButtonPress;         //Use this to store if the encoder button was pressed or not
-extern unsigned long _lastIncReadTime; 
-extern unsigned long _lastDecReadTime; 
 extern volatile float setvalue;               // Contador del encoder
 
 //----------------------------------------- Variables de operacion y Modos --------------------------------------------------
 
 const float VOLTS_CUTOFF = 30.0;    // Volaje Maximo
 const float CURRENT_CUTOFF = 5.0;    // Corriente Maxima
+const byte MESSAGE_LEN = 15;         // Mensajes de UI mostrados en las primeras 14 columnas
+const byte REQUEST_LEN = 12;         // Solicitudes cortas en el margen izquierdo
 
 extern int16_t adcv, adci;          // Guarda el valor en binario del ADC
 extern float reading;               // Lecturas de Encoder o keypad
@@ -52,8 +49,7 @@ extern int CPprev;                  // Posisión anterior del cursor para saltar
 extern volatile float factor;       // Factor de escala que cambia las unidades para Modo V que es el default
 extern char Mode;                   // Modo "V" es el default
 extern char Modetocal;              // Modo seleccionado para calibrar, no puede cambiar.
-const byte UI_TEXT_LEN = 21;        // Texto de UI para una linea de LCD 20x4
-extern char Mnsg[UI_TEXT_LEN];      // Para mostrar mensajes
+extern char Mnsg[MESSAGE_LEN];      // Para mostrar mensajes
 
 extern float voltage;               // Voltage real
 extern float setvoltage;            // Voltaje a setear
@@ -80,7 +76,7 @@ extern float Out_Curr_Calib_Offs;   // Offset de calibracion de corriente máxim
 extern bool hlth;                   // Flag de Salud gral.
 extern bool mem_st;                 // Flag de seleccion de memorias o presets
 extern bool cal_st;                 // Flag para Calibración
-extern char Req_info[UI_TEXT_LEN];  // Indica que información es requerida ingresar
+extern char Req_info[REQUEST_LEN];  // Indica que información es requerida ingresar
 
 //-------------------------------------------Variables para el Keypad---------------------------------------------------------
 

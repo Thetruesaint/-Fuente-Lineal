@@ -1,12 +1,17 @@
-**v1.54 beta**
+**v1.54**
 
 **Mejoras:**
 - LCD `20x4` y rediseño completo de la UI principal.
-- Splash screen nuevo con `Fuente Lineal`, `By Guy & Codex` y versión `v1.54b`.
+- Splash screen nuevo con `Fuente  Lineal`, `By Guy & Codex` y versión `v1.54`.
+- Pantalla de `Selfcheck OK` con temperatura visible y retención de pantalla ante fallas.
 - Cambio de tecla `MEM` a `S` con acciones contextuales en pantalla.
-- Nuevo menú `Config.` con submenús `Limits` y `Calibration`.
-- Reorganización de menús y navegación para facilitar nuevas funciones.
+- Nuevo menú `Config.` con submenús `Protection` y `Calibration`.
+- Navegación de menús también por encoder rotativo y pulsador.
 - UI de calibración actualizada con ingreso `Real:` y ayudas contextuales.
+- Agregado de protecciones configurables `OVP` y `OCP` con seteo desde menú.
+- Clamp de seteo de `V` e `I` respetando `OVP/OCP` y límites propios de la fuente.
+- Simulación Wokwi actualizada para LCD `20x4`, selfcheck y carga variable.
+- Optimización de RAM y Flash para liberar espacio a futuras funciones.
 
 **Fixes:**
 - Corrección de la aplicación de factores de calibración en la salida de `V` e `I`.
@@ -14,16 +19,19 @@
 - Corrección del flujo de EEPROM para cargar, validar y sanear factores.
 - Corrección de refresco de pantalla, panel derecho y cursor en menús.
 - Corrección de interacción entre calibración y cambio de modo `V/I`.
+- Corrección de un overflow en el panel derecho del menú que se manifestaba en hardware real.
+- Corrección de la posición inicial del cursor en modo `V`.
+- Corrección del comportamiento de `Config.` y `Protection` manteniendo visible la información instantánea.
 
 **Bugs:**
 
 **Trabajando:**
-- Optimización de RAM y Flash.
+- Límites avanzados y otras protecciones adicionales.
 
 **A Trabajar:**
 
 **En Cola:**
-- No hay protección de OVP u OCP.
+- Evaluar si conviene persistir otros parámetros configurables además de la calibración.
 
 **Posibles Mejoras SW:**
 

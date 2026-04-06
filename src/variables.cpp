@@ -15,8 +15,8 @@ volatile float setvalue = 0;                  // Contador del encoder
 
 int16_t adcv, adci;                           // Guarda el valor en binario del ADC
 float reading = 0;                            // Lecturas de Encoder o keypad
-int CP = 1;                                   // Posiciona el cursor en las unidades para Modo V que es el default
-int CPprev = 11;                              // Posisión anterior del cursor para saltar el punto decimal
+int CP = 15;                                  // Posiciona el cursor en las unidades para Modo V que es el default
+int CPprev = 15;                              // Posisión anterior del cursor para saltar el punto decimal
 volatile float factor = 1000;                 // Factor de escala que cambia las unidades para Modo V que es el default
 char Mode = 'V';                              // Modo "V" es el default
 char Modetocal = 'U';                         // Modo seleccionado para calibrar, no puede cambiar. U de Undefined
@@ -47,7 +47,11 @@ float Out_Curr_Calib_Offs = 0.0;              // Offset de calibracion de corrie
 bool hlth = true;                             // Flag de Salud gral.
 bool mem_st = false;                          // Flag de seleccion de memorias o presets
 bool cal_st = false;                          // Flag para Calibración
+char ProtMode = 'U';                          // 'V' para OVP, 'I' para OCP
 char Req_info[REQUEST_LEN] = " ";            // Indica que información es requerida ingresar
+
+float ovp_limit = VOLTS_CUTOFF;               // Protección por sobretensión por defecto
+float ocp_limit = CURRENT_CUTOFF;             // Protección por sobrecorriente por defecto
 
 //-------------------------------------------Variables para el Keypad---------------------------------------------------------
 
@@ -68,8 +72,8 @@ byte index = 0;
 float x = 0;
 
 //------------------------------------------Variables de coordenadas para el cursor del LCD------------------------------------
-int y = 0;                                    // Posición provisoria
-int r = 0;                                    // Renglon
+int y = 15;                                   // Posición provisoria
+int r = 1;                                    // Renglon
 byte amp_char[8] = {                          // A mayúscula mas chica
   B00000,
   B00000,

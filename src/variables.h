@@ -76,7 +76,11 @@ extern float Out_Curr_Calib_Offs;   // Offset de calibracion de corriente máxim
 extern bool hlth;                   // Flag de Salud gral.
 extern bool mem_st;                 // Flag de seleccion de memorias o presets
 extern bool cal_st;                 // Flag para Calibración
+extern char ProtMode;               // 'V' para OVP, 'I' para OCP
 extern char Req_info[REQUEST_LEN];  // Indica que información es requerida ingresar
+
+extern float ovp_limit;             // Limite de protección por sobretensión
+extern float ocp_limit;             // Limite de protección por sobrecorriente
 
 //-------------------------------------------Variables para el Keypad---------------------------------------------------------
 

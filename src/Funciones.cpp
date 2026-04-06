@@ -88,6 +88,65 @@ void BuildMenuLine(char *dest, bool selected, const char *item) {
   dest[12] = '\0';
 }
 
+byte GetInputStartColumn() {
+  if (cal_st) return 5;
+  if (ProtMode != 'U') return 7;
+  return 6;
+}
+
+bool ProtectionActive() {
+  return ProtMode != 'U';
+}
+
+const char *GetEntryLabel() {
+  if (cal_st) return "Real:";
+  if (ProtectionActive()) return (ProtMode == 'V') ? "Set VP:" : "Set CP:";
+  return (Mode == 'V') ? "Set V:" : "Set I:";
+}
+
+int8_t ReadMenuEncoderStep() {
+  static uint8_t oldAB = 3;
+  static int8_t encoderValue = 0;
+  static unsigned long lastRead = 0;
+  static const int8_t encoderStates[] = {0, -1, 1, 0, 1, 0, 0, -1, -1, 0, 0, 1, 0, 1, -1, 0};
+  int8_t step = 0;
+  unsigned long now = micros();
+
+  if ((now - lastRead) < 1200UL) return 0;
+  lastRead = now;
+
+  oldAB <<= 2;
+  if (digitalRead(ENC_A)) oldAB |= 0x02;
+  if (digitalRead(ENC_B)) oldAB |= 0x01;
+
+  encoderValue += encoderStates[(oldAB & 0x0F)];
+  if (encoderValue > 3) {
+    encoderValue = 0;
+    step = 1;
+  } else if (encoderValue < -3) {
+    encoderValue = 0;
+    step = -1;
+  }
+
+  return step;
+}
+
+bool ConsumeMenuEncoderPress() {
+  static bool buttonLatched = false;
+
+  if (digitalRead(ENC_BTN) == LOW) {
+    if (!buttonLatched) {
+      buttonLatched = true;
+      delay(180);
+      return true;
+    }
+  } else {
+    buttonLatched = false;
+  }
+
+  return false;
+}
+
 float ParseKeypadValue(const char *text) {
   unsigned long integerPart = 0;
   unsigned long fractionalPart = 0;
@@ -148,7 +207,7 @@ void ResetDisplayCache() {
 }
 
 void DrawMenuStatusPanel() {
-  char field[6];
+  char field[8];
   char panel[8];
   float power = max(voltage * current, 0.0f);
 
@@ -257,6 +316,52 @@ void CancelCalibrationSession(const char *message) {
   Load_Calibration();
 }
 
+void ApplyProtectionLimit(float enteredValue) {
+  if (enteredValue <= 0.0f) return;
+
+  if (ProtMode == 'V') {
+    ovp_limit = min(VOLTS_CUTOFF, enteredValue);
+    CopyUiText(Mnsg, MESSAGE_LEN, "OVP set!");
+  } else if (ProtMode == 'I') {
+    ocp_limit = min(CURRENT_CUTOFF, enteredValue);
+    CopyUiText(Mnsg, MESSAGE_LEN, "OCP set!");
+  }
+
+  ProtMode = 'U';
+
+  if (setvoltage > ovp_limit) {
+    setvoltage = ovp_limit;
+  }
+  if (setcurrent > ocp_limit) {
+    setcurrent = ocp_limit;
+  }
+  if (Mode == 'V') {
+    reading = min(setvoltage, ovp_limit);
+    setvalue = reading * 1000;
+  } else {
+    reading = min(setcurrent, ocp_limit);
+    setvalue = reading * 1000;
+  }
+
+  Change_Mode('B');
+}
+
+void StartProtectionSetting(char mode) {
+  ProtMode = mode;
+  mem_st = false;
+  Reset_Input_Value();
+  ClearUiText(Req_info, REQUEST_LEN);
+  CopyUiText(Mnsg, MESSAGE_LEN, (mode == 'V') ? "Set OVP" : "Set OCP");
+  r = 3;
+  y = GetInputStartColumn();
+  dspset = false;
+  dspsetchng = true;
+  lcd.clear();
+  ResetDisplayCache();
+  V_I_W_Display(voltage, current, Mnsg);
+  lcd.blink();
+}
+
 void ApplyCalibrationSetpoints(float voltageValue, float currentValue) {
   setvoltage = voltageValue;
   setcurrent = currentValue;
@@ -300,6 +405,26 @@ int RunSimpleMenu(const char *title, const char *const items[], int itemCount) {
       Temp_check();
       DrawMenuStatusPanel();
       lastStatusRefresh = millis();
+    }
+
+    int8_t encoderStep = ReadMenuEncoderStep();
+    if (encoderStep < 0) {
+      selected = (selected > 0) ? selected - 1 : itemCount - 1;
+      if (selected < top) top = selected;
+      if (selected >= top + 3) top = selected - 2;
+      redraw = true;
+      continue;
+    }
+    if (encoderStep > 0) {
+      selected = (selected < itemCount - 1) ? selected + 1 : 0;
+      if (selected < top) top = selected;
+      if (selected >= top + 3) top = selected - 2;
+      redraw = true;
+      continue;
+    }
+    if (ConsumeMenuEncoderPress()) {
+      lcd.clear();
+      return selected;
     }
 
     char key = customKeypad.getKey();
@@ -358,16 +483,17 @@ void Read_encoder() {
 
 void Read_keypad(void) {
   char customKey = customKeypad.getKey();
-  byte index_max = 4;
+  byte index_max = ProtectionActive() ? 5 : 4;
 
   if (customKey == NO_KEY) return;
 
   Show_VI_Settings();
 
-  if (customKey == 'V') { Change_Mode(); return; }
-  if (customKey == 'I') { Change_Mode('I'); return; }
+  if (!ProtectionActive() && customKey == 'V') { Change_Mode(); return; }
+  if (!ProtectionActive() && customKey == 'I') { Change_Mode('I'); return; }
 
   if (customKey == 'S') {
+    if (ProtectionActive()) return;
     mem_st = !mem_st;
     if (cal_st) {
       if (mem_st) {
@@ -382,7 +508,7 @@ void Read_keypad(void) {
   }
 
   if (customKey >= '0' && customKey <= '9') {
-    if (mem_st && !cal_st) {
+    if (mem_st && !cal_st && !ProtectionActive()) {
       Mem_selec(customKey);
       return;
     } else if (cal_st) {
@@ -393,7 +519,7 @@ void Read_keypad(void) {
     numbers[index++] = customKey;
     numbers[index] = '\0';
     r = 3;
-    y = (cal_st ? 5 : 4) + index;
+    y = GetInputStartColumn() + index;
     return;
   }
 
@@ -402,17 +528,20 @@ void Read_keypad(void) {
       numbers[index++] = '.';
       numbers[index] = '\0';
       r = 3;
-      y = (cal_st ? 5 : 4) + index;
+      y = GetInputStartColumn() + index;
       decimalPoint = '*';
     }
     return;
   }
 
   if (customKey == 'E') {
+    bool wasProtectionEntry = ProtectionActive();
     x = ParseKeypadValue(numbers);
     Reset_Input_Value();
     if (cal_st) {
       Calibration();
+    } else if (wasProtectionEntry) {
+      ApplyProtectionLimit(x);
     } else {
       reading = x;
       setvalue = reading * 1000;
@@ -420,7 +549,7 @@ void Read_keypad(void) {
     }
     r = (Mode == 'V') ? 1 : 2;
     y = CP;
-    Output_Control(true);
+    if (!wasProtectionEntry) Output_Control(true);
     return;
   }
 
@@ -435,10 +564,10 @@ void Read_keypad(void) {
     index--;
     if (numbers[index] == '.') decimalPoint = ' ';
     numbers[index] = '\0';
-    lcd.setCursor((cal_st ? 5 : 4) + index, r);
+    lcd.setCursor(GetInputStartColumn() + index, r);
     lcd.print(" ");
     r = 3;
-    y = (cal_st ? 5 : 4) + index;
+    y = GetInputStartColumn() + index;
     return;
   }
 
@@ -533,7 +662,7 @@ void Manage_Display(void) {
 
   if (dspset && (current_time - dspset_time) >= DSP_SET_DRTN) {
     dspset = false;
-    if (!cal_st) Reset_Input_Value();
+    if (!cal_st && !ProtectionActive()) Reset_Input_Value();
     lcd.noBlink();
   }
 }
@@ -548,6 +677,7 @@ void V_I_W_Display(float PrintVoltage, float PrintCurrent, const char *mensaje) 
   char row3[21];
   char valueBuf[8];
   char tempBuf[6];
+  byte tempLen = 0;
 
   ClearLineBuffer(row0);
   ClearLineBuffer(row1);
@@ -555,12 +685,12 @@ void V_I_W_Display(float PrintVoltage, float PrintCurrent, const char *mensaje) 
   ClearLineBuffer(row3);
 
   WriteTextAt(row0, 0, mensaje, 14);
-  BuildTemperatureText(tempBuf);
-  WriteTextAt(row0, 15, tempBuf, 5);
+  tempLen = BuildTemperatureText(tempBuf);
+  WriteTextAt(row0, 20 - tempLen, tempBuf, tempLen);
 
   if (mem_st && !cal_st) {
-    WriteTextAt(row1, 0, "1..6 Mem", 8);
-    WriteTextAt(row2, 0, "0 Config.", 9);
+    WriteTextAt(row1, 0, "1..6: Mem", 9);
+    WriteTextAt(row2, 0, "0: Config", 9);
   } else if (mem_st && cal_st) {
     WriteTextAt(row1, 0, "CLR: Cancel", 11);
   } else if (cal_st) {
@@ -576,12 +706,8 @@ void V_I_W_Display(float PrintVoltage, float PrintCurrent, const char *mensaje) 
   WriteTextAt(row2, 14, valueBuf, 5);
   row2[19] = 'a';
 
-  if (cal_st) {
-    WriteTextAt(row3, 0, "Real:", 5);
-  } else {
-    WriteTextAt(row3, 0, "Set:", 4);
-  }
-  WriteTextAt(row3, cal_st ? 5 : 4, numbers, 8);
+  WriteTextAt(row3, 0, GetEntryLabel(), cal_st ? 5 : (ProtectionActive() ? 7 : 6));
+  WriteTextAt(row3, GetInputStartColumn(), numbers, 8);
   dtostrf(PrintPower, 6, (PrintPower >= 100.0f) ? 1 : 2, valueBuf);
   WriteTextAt(row3, 13, valueBuf, 6);
   row3[19] = 'w';
@@ -651,18 +777,35 @@ void Limits_check(void) {
     CopyUiText(Mnsg, MESSAGE_LEN, "OFF Max WD");
   }
 
-  if (Mode == 'V' && reading > VOLTS_CUTOFF) {
-    reading = VOLTS_CUTOFF;
-    setvalue = VOLTS_CUTOFF * 1000;
+  if (max(voltage, 0.0f) >= (ovp_limit * 1.03f)) {
+    Output_Control(false);
     Reset_Input_Value();
-    CopyUiText(Mnsg, MESSAGE_LEN, "Max V");
+    CopyUiText(Mnsg, MESSAGE_LEN, "OFF: OVP!");
   }
 
-  if (Mode == 'I' && reading > CURRENT_CUTOFF) {
-    reading = CURRENT_CUTOFF;
-    setvalue = CURRENT_CUTOFF * 1000;
+  if (max(current, 0.0f) >= (ocp_limit * 1.03f)) {
+    Output_Control(false);
     Reset_Input_Value();
-    CopyUiText(Mnsg, MESSAGE_LEN, "Max I");
+    CopyUiText(Mnsg, MESSAGE_LEN, "OFF: OCP!");
+  }
+
+  float maxVoltageSet = min(VOLTS_CUTOFF, ovp_limit);
+  float maxCurrentSet = min(CURRENT_CUTOFF, ocp_limit);
+  bool customOvp = ovp_limit < VOLTS_CUTOFF;
+  bool customOcp = ocp_limit < CURRENT_CUTOFF;
+
+  if (Mode == 'V' && reading > maxVoltageSet) {
+    reading = maxVoltageSet;
+    setvalue = maxVoltageSet * 1000;
+    Reset_Input_Value();
+    CopyUiText(Mnsg, MESSAGE_LEN, customOvp ? "Max VP" : "Max V");
+  }
+
+  if (Mode == 'I' && reading > maxCurrentSet) {
+    reading = maxCurrentSet;
+    setvalue = maxCurrentSet * 1000;
+    Reset_Input_Value();
+    CopyUiText(Mnsg, MESSAGE_LEN, customOcp ? "Max CP" : "Max I");
   }
 }
 
@@ -770,6 +913,8 @@ void Mem_selec(char key) {
   }
 
   if (setVI) {
+    setvoltage = min(setvoltage, ovp_limit);
+    setcurrent = min(setcurrent, ocp_limit);
     Change_Mode('B');
   }
   mem_st = false;
@@ -875,9 +1020,8 @@ void Change_Mode(char Modetoset) {
 }
 
 void Configuration_Menu(void) {
-  static const char *const menuItems[] = {"Limits", "Calibration", "Exit"};
+  static const char *const menuItems[] = {"Protection", "Calibration", "Exit"};
 
-  Output_Control(false);
   Reset_Input_Value();
   mem_st = false;
   lcd.noBlink();
@@ -887,6 +1031,9 @@ void Configuration_Menu(void) {
 
     if (selection == 0) {
       Limits_Menu();
+      if (ProtectionActive()) {
+        return;
+      }
     } else if (selection == 1) {
       Calibration_Menu();
       if (cal_st) {
@@ -905,10 +1052,20 @@ void Configuration_Menu(void) {
 }
 
 void Limits_Menu(void) {
-  static const char *const menuItems[] = {"Back"};
-  Output_Control(false);
+  static const char *const menuItems[] = {"Set OVP", "Set OCP", "Exit"};
   lcd.noBlink();
-  RunSimpleMenu("Limits", menuItems, sizeof(menuItems) / sizeof(menuItems[0]));
+  int selection = RunSimpleMenu("Protection", menuItems, sizeof(menuItems) / sizeof(menuItems[0]));
+
+  if (selection == 0) {
+    StartProtectionSetting('V');
+    return;
+  }
+
+  if (selection == 1) {
+    StartProtectionSetting('I');
+    return;
+  }
+
   lcd.clear();
   ResetDisplayCache();
 }

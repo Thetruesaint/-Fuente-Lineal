@@ -60,6 +60,7 @@ El firmware incorpora dos protecciones configurables:
 
 - `OVP`: over-voltage protection
 - `OCP`: over-current protection
+- `I fault`: detección de corriente fuera de control respecto al set
 
 Por defecto:
 
@@ -70,6 +71,7 @@ Comportamiento actual:
 
 - si el valor instantáneo supera `OVP * 1.03`, la salida se deshabilita con mensaje `OFF: OVP!`
 - si el valor instantáneo supera `OCP * 1.03`, la salida se deshabilita con mensaje `OFF: OCP!`
+- si `current > setcurrent * 1.10` y `setcurrent >= 0.10 A`, la salida se deshabilita con mensaje `OFF: I fault`
 - luego del disparo, la salida solo se rehabilita con `E-Accept`
 - el seteo de `V` e `I` también queda limitado por `OVP/OCP` para evitar que el propio set dispare la protección
 - `OVP/OCP` no se guardan en EEPROM y vuelven a sus valores por defecto al reiniciar
@@ -94,6 +96,7 @@ Durante calibración:
 - el valor de abajo se interpreta como `Real:`
 - el ajuste de salida se hace con encoder o teclas de dirección
 - el valor real medido se ingresa por keypad
+- los valores seteados de `V` e `I` siguen visibles en los renglones 1 y 2
 
 ## Entornos
 

@@ -1,4 +1,4 @@
-**v1.54**
+**v1.54 AI Programing is Here** 
 
 **Mejoras:**
 - LCD `20x4` y rediseño completo de la UI principal.
@@ -15,6 +15,8 @@
 - Optimización de RAM y Flash para liberar espacio a futuras funciones.
 - Visualización permanente de valores seteados en el home cuando no hay mensajes activos.
 - En menues de `Config.` y `Protection` se mantienen visibles la información instantánea de v, a y w
+- En calibración se mantienen visibles los valores seteados de `V` e `I`.
+- Protecciòn de Outrun de Transistores con `OFF: I fault` cuando `current` en mas del 10% de`setcurrent`
 
 **Fixes:**
 - Corrección de la aplicación de factores de calibración en la salida de `V` e `I`.
@@ -27,6 +29,8 @@
 - Corrección de un overflow en el panel derecho del menú que se manifestaba en hardware real.
 - Corrección de la posición inicial del cursor en modo `V`.
 - Confirmación explícita `E-Accept` para rehabilitar la salida luego de disparos de protección.
+- Corrección de retorno de `Load Cal` y `Save Cal` directo a `home`.
+- Corrección del menú `Calibration` para no deshabilitar la salida solo por entrar.
 
 
 **Bugs:**

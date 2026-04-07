@@ -7,6 +7,7 @@
 namespace {
 
 uint32_t g_displayHash[4] = {0};
+bool g_returnHomeFromMenu = false;
 
 struct CalibrationData {
   int address;
@@ -38,23 +39,6 @@ void SetModeMessage() {
   Mnsg[4] = 't';
   Mnsg[5] = '!';
   Mnsg[6] = '\0';
-}
-
-void PrintFixedLine(uint8_t row, const char *text) {
-  char line[21];
-  byte idx = 0;
-
-  while (idx < 20 && text[idx] != '\0') {
-    line[idx] = text[idx];
-    idx++;
-  }
-  while (idx < 20) {
-    line[idx++] = ' ';
-  }
-  line[20] = '\0';
-
-  lcd.setCursor(0, row);
-  lcd.print(line);
 }
 
 void ClearLineBuffer(char *line) {
@@ -720,11 +704,29 @@ void V_I_W_Display(float PrintVoltage, float PrintCurrent, const char *mensaje) 
   if (mem_st && !cal_st) {
     WriteTextAt(row1, 0, "1..6: Mem", 9);
     WriteTextAt(row2, 0, "0: Config", 9);
-  } else if (mem_st && cal_st) {
-    WriteTextAt(row1, 0, "CLR: Cancel", 11);
-  } else if (cal_st) {
-    WriteTextAt(row1, 0, Req_info, 10);
   } else if (mensaje[0] == '\0' && Req_info[0] == '\0') {
+    dtostrf(max(setvoltage, 0.0f), 5, 2, valueBuf);
+    memset(setBuf, ' ', 11);
+    memcpy(setBuf, valueBuf, 5);
+    setBuf[5] = 'V';
+    setBuf[7] = 's';
+    setBuf[8] = 'e';
+    setBuf[9] = 't';
+    setBuf[10] = '\0';
+    WriteTextAt(row1, 0, setBuf, 10);
+
+    dtostrf(max(setcurrent, 0.0f), 5, 3, valueBuf);
+    memset(setBuf, ' ', 11);
+    memcpy(setBuf, valueBuf, 5);
+    setBuf[5] = 'A';
+    setBuf[7] = 's';
+    setBuf[8] = 'e';
+    setBuf[9] = 't';
+    setBuf[10] = '\0';
+    WriteTextAt(row2, 0, setBuf, 10);
+  }
+
+  if (cal_st && !mem_st) {
     dtostrf(max(setvoltage, 0.0f), 5, 2, valueBuf);
     memset(setBuf, ' ', 11);
     memcpy(setBuf, valueBuf, 5);
@@ -757,6 +759,8 @@ void V_I_W_Display(float PrintVoltage, float PrintCurrent, const char *mensaje) 
 
   if (prot_trip) {
     WriteTextAt(row3, 0, Req_info, 10);
+  } else if (cal_st && mem_st) {
+    WriteTextAt(row3, 0, "CLR: Cancel", 11);
   } else {
     WriteTextAt(row3, 0, GetEntryLabel(), cal_st ? 5 : (ProtectionActive() ? 7 : 6));
     WriteTextAt(row3, GetInputStartColumn(), numbers, 8);
@@ -832,6 +836,10 @@ void Limits_check(void) {
 
   if (max(current, 0.0f) >= (ocp_limit * 1.03f)) {
     TriggerProtectionTrip("OFF: OCP!");
+  }
+
+  if (max(setcurrent, 0.0f) >= 0.10f && max(current, 0.0f) > (max(setcurrent, 0.0f) * 1.10f)) {
+    TriggerProtectionTrip("OFF: I fault");
   }
 
   float maxVoltageSet = min(VOLTS_CUTOFF, ovp_limit);
@@ -1084,6 +1092,10 @@ void Configuration_Menu(void) {
       if (cal_st) {
         return;
       }
+      if (g_returnHomeFromMenu) {
+        g_returnHomeFromMenu = false;
+        break;
+      }
     } else {
       break;
     }
@@ -1119,7 +1131,6 @@ void Calibration_Menu(void) {
   static const char *const menuItems[] = {"Cal V", "Cal I", "Load Cal", "Save Cal", "Back"};
   int selection;
 
-  Output_Control(false);
   Reset_Input_Value();
   mem_st = false;
   lcd.noBlink();
@@ -1135,16 +1146,24 @@ void Calibration_Menu(void) {
       return;
     case 2:
       Load_Calibration();
-      lcd.clear();
-      PrintFixedLine(0, "Calibration loaded");
+      CopyUiText(Mnsg, MESSAGE_LEN, "Cal. Loaded");
+      dspset = false;
+      dspsetchng = true;
+      ResetDisplayCache();
+      V_I_W_Display(voltage, current, Mnsg);
       delay(1000);
-      break;
+      g_returnHomeFromMenu = true;
+      return;
     case 3:
       Save_Calibration();
-      lcd.clear();
-      PrintFixedLine(0, "Calibration saved");
+      CopyUiText(Mnsg, MESSAGE_LEN, "Cal Saved");
+      dspset = false;
+      dspsetchng = true;
+      ResetDisplayCache();
+      V_I_W_Display(voltage, current, Mnsg);
       delay(1000);
-      break;
+      g_returnHomeFromMenu = true;
+      return;
     default:
       break;
   }

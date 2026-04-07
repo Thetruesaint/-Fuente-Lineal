@@ -10,8 +10,11 @@
 - UI de calibración actualizada con ingreso `Real:` y ayudas contextuales.
 - Agregado de protecciones configurables `OVP` y `OCP` con seteo desde menú.
 - Clamp de seteo de `V` e `I` respetando `OVP/OCP` y límites propios de la fuente.
+- Carga automática del preset `4` al inicio para arrancar con valores conocidos.
 - Simulación Wokwi actualizada para LCD `20x4`, selfcheck y carga variable.
 - Optimización de RAM y Flash para liberar espacio a futuras funciones.
+- Visualización permanente de valores seteados en el home cuando no hay mensajes activos.
+- En menues de `Config.` y `Protection` se mantienen visibles la información instantánea de v, a y w
 
 **Fixes:**
 - Corrección de la aplicación de factores de calibración en la salida de `V` e `I`.
@@ -23,7 +26,8 @@
 - Corrección de interacción entre calibración y cambio de modo `V/I`.
 - Corrección de un overflow en el panel derecho del menú que se manifestaba en hardware real.
 - Corrección de la posición inicial del cursor en modo `V`.
-- Corrección del comportamiento de `Config.` y `Protection` manteniendo visible la información instantánea.
+- Confirmación explícita `E-Accept` para rehabilitar la salida luego de disparos de protección.
+
 
 **Bugs:**
 

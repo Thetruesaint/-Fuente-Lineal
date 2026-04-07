@@ -76,6 +76,7 @@ extern float Out_Curr_Calib_Offs;   // Offset de calibracion de corriente máxim
 extern bool hlth;                   // Flag de Salud gral.
 extern bool mem_st;                 // Flag de seleccion de memorias o presets
 extern bool cal_st;                 // Flag para Calibración
+extern bool prot_trip;              // Flag de proteccion disparada esperando confirmacion
 extern char ProtMode;               // 'V' para OVP, 'I' para OCP
 extern char Req_info[REQUEST_LEN];  // Indica que información es requerida ingresar
 

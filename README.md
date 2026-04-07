@@ -20,6 +20,7 @@ Este proyecto controla una fuente lineal de laboratorio con:
 La interfaz principal muestra:
 
 - mensajes y temperatura en la línea superior
+- valores seteados de `V` e `I` en reposo, en el margen izquierdo
 - valores instantáneos de `V` e `I`
 - potencia instantánea
 - campo de ingreso numérico `Set V:` o `Set I:`
@@ -69,8 +70,17 @@ Comportamiento actual:
 
 - si el valor instantáneo supera `OVP * 1.03`, la salida se deshabilita con mensaje `OFF: OVP!`
 - si el valor instantáneo supera `OCP * 1.03`, la salida se deshabilita con mensaje `OFF: OCP!`
+- luego del disparo, la salida solo se rehabilita con `E-Accept`
 - el seteo de `V` e `I` también queda limitado por `OVP/OCP` para evitar que el propio set dispare la protección
 - `OVP/OCP` no se guardan en EEPROM y vuelven a sus valores por defecto al reiniciar
+
+## Arranque
+
+Al iniciar:
+
+- se ejecuta el splash y selfcheck
+- se carga la calibración desde EEPROM
+- se aplica automáticamente el preset `4` (`12.00 V / 3.000 A`)
 
 ## Calibración
 
@@ -91,13 +101,3 @@ El proyecto tiene dos entornos en `platformio.ini`:
 
 - `sim`: simulación
 - `real`: hardware real
-
-## Estado
-
-Versión actual: `v1.54`
-
-Pendientes principales:
-
-- seguir optimizando RAM/Flash
-- evaluar persistencia futura de otros parámetros configurables si realmente aporta valor
-- revisar protecciones adicionales y límites avanzados

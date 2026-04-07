@@ -243,6 +243,19 @@ void DrawMenuStatusPanel() {
   lcd.print(panel);
 }
 
+void TriggerProtectionTrip(const char *message) {
+  if (prot_trip) return;
+
+  Output_Control(false);
+  prot_trip = true;
+  mem_st = false;
+  Reset_Input_Value();
+  CopyUiText(Mnsg, MESSAGE_LEN, message);
+  CopyUiText(Req_info, REQUEST_LEN, "E-Accept");
+  dspset = false;
+  dspsetchng = true;
+}
+
 float ApplyLinearCalibration(float raw, float factorValue, float offsetValue) {
   return raw * factorValue + offsetValue;
 }
@@ -461,6 +474,8 @@ void Read_encoder() {
   static int8_t encval = 0;
   static const int8_t enc_states[] = {0, -1, 1, 0, 1, 0, 0, -1, -1, 0, 0, 1, 0, 1, -1, 0};
 
+  if (prot_trip) return;
+
   old_AB <<= 2;
 
   if (digitalRead(ENC_A)) old_AB |= 0x02;
@@ -486,6 +501,17 @@ void Read_keypad(void) {
   byte index_max = ProtectionActive() ? 5 : 4;
 
   if (customKey == NO_KEY) return;
+
+  if (prot_trip) {
+    if (customKey == 'E') {
+      prot_trip = false;
+      ClearUiText(Mnsg, MESSAGE_LEN);
+      ClearUiText(Req_info, REQUEST_LEN);
+      Output_Control(true);
+      Show_VI_Settings();
+    }
+    return;
+  }
 
   Show_VI_Settings();
 
@@ -597,6 +623,8 @@ void Reset_Input_Value() {
 }
 
 void Cursor_position(void) {
+  if (prot_trip) return;
+
   if (digitalRead(ENC_BTN) == LOW) {
     delay(200);
     CP++;
@@ -677,6 +705,7 @@ void V_I_W_Display(float PrintVoltage, float PrintCurrent, const char *mensaje) 
   char row3[21];
   char valueBuf[8];
   char tempBuf[6];
+  char setBuf[12];
   byte tempLen = 0;
 
   ClearLineBuffer(row0);
@@ -695,6 +724,26 @@ void V_I_W_Display(float PrintVoltage, float PrintCurrent, const char *mensaje) 
     WriteTextAt(row1, 0, "CLR: Cancel", 11);
   } else if (cal_st) {
     WriteTextAt(row1, 0, Req_info, 10);
+  } else if (mensaje[0] == '\0' && Req_info[0] == '\0') {
+    dtostrf(max(setvoltage, 0.0f), 5, 2, valueBuf);
+    memset(setBuf, ' ', 11);
+    memcpy(setBuf, valueBuf, 5);
+    setBuf[5] = 'V';
+    setBuf[7] = 's';
+    setBuf[8] = 'e';
+    setBuf[9] = 't';
+    setBuf[10] = '\0';
+    WriteTextAt(row1, 0, setBuf, 10);
+
+    dtostrf(max(setcurrent, 0.0f), 5, 3, valueBuf);
+    memset(setBuf, ' ', 11);
+    memcpy(setBuf, valueBuf, 5);
+    setBuf[5] = 'A';
+    setBuf[7] = 's';
+    setBuf[8] = 'e';
+    setBuf[9] = 't';
+    setBuf[10] = '\0';
+    WriteTextAt(row2, 0, setBuf, 10);
   }
   row1[13] = (Mode == 'V') ? '>' : ' ';
   dtostrf(PrintVoltage, 5, 2, valueBuf);
@@ -706,8 +755,12 @@ void V_I_W_Display(float PrintVoltage, float PrintCurrent, const char *mensaje) 
   WriteTextAt(row2, 14, valueBuf, 5);
   row2[19] = 'a';
 
-  WriteTextAt(row3, 0, GetEntryLabel(), cal_st ? 5 : (ProtectionActive() ? 7 : 6));
-  WriteTextAt(row3, GetInputStartColumn(), numbers, 8);
+  if (prot_trip) {
+    WriteTextAt(row3, 0, Req_info, 10);
+  } else {
+    WriteTextAt(row3, 0, GetEntryLabel(), cal_st ? 5 : (ProtectionActive() ? 7 : 6));
+    WriteTextAt(row3, GetInputStartColumn(), numbers, 8);
+  }
   dtostrf(PrintPower, 6, (PrintPower >= 100.0f) ? 1 : 2, valueBuf);
   WriteTextAt(row3, 13, valueBuf, 6);
   row3[19] = 'w';
@@ -759,9 +812,7 @@ void Limits_check(void) {
   static float maxpwrdis;
 
   if (temp >= 99) {
-    Output_Control(false);
-    Reset_Input_Value();
-    CopyUiText(Mnsg, MESSAGE_LEN, "OFF Max T");
+    TriggerProtectionTrip("OFF Max T");
   }
 
   if (new_temp) {
@@ -772,21 +823,15 @@ void Limits_check(void) {
   actpwrdis = max(0.0f, (38.0f - voltage) * current / 2.0f);
 
   if (actpwrdis >= maxpwrdis) {
-    Output_Control(false);
-    Reset_Input_Value();
-    CopyUiText(Mnsg, MESSAGE_LEN, "OFF Max WD");
+    TriggerProtectionTrip("OFF Max WD");
   }
 
   if (max(voltage, 0.0f) >= (ovp_limit * 1.03f)) {
-    Output_Control(false);
-    Reset_Input_Value();
-    CopyUiText(Mnsg, MESSAGE_LEN, "OFF: OVP!");
+    TriggerProtectionTrip("OFF: OVP!");
   }
 
   if (max(current, 0.0f) >= (ocp_limit * 1.03f)) {
-    Output_Control(false);
-    Reset_Input_Value();
-    CopyUiText(Mnsg, MESSAGE_LEN, "OFF: OCP!");
+    TriggerProtectionTrip("OFF: OCP!");
   }
 
   float maxVoltageSet = min(VOLTS_CUTOFF, ovp_limit);
